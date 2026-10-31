@@ -132,6 +132,33 @@ table.grid{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
 .peek-item{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:#fff;border:1px solid var(--line);border-radius:8px;padding:2px 8px}
 .peek-item .k{color:var(--muted);font-weight:600;font-size:11px}
 .peek-empty{font-size:12px;color:var(--muted);font-weight:600}
+.glayout{display:grid;grid-template-columns:270px minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:start}
+.gcol{display:flex;flex-direction:column;height:calc(100vh - 230px);min-height:480px;overflow:hidden}
+.gcol .scroll{overflow:auto;flex:1}
+.seg{display:flex;background:#f1f5f9;border-radius:12px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:transparent;border-radius:9px;padding:7px 4px;font-weight:800;font-size:12px;color:var(--muted)}
+.seg button.on{background:#fff;color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.gitem{display:flex;align-items:center;gap:8px;width:100%;text-align:right;border:0;background:transparent;padding:9px 12px;border-radius:10px;font-weight:700}
+.gitem:hover{background:#f8fafc}
+.gitem.on{background:var(--primary-soft);color:var(--primary);font-weight:900}
+.gitem .n{margin-inline-start:auto;font-size:11px;font-weight:800;background:#f1f5f9;color:var(--muted);border-radius:999px;padding:1px 8px}
+.gitem.on .n{background:var(--primary);color:#fff}
+.gitem.zero .n{background:#fef3c7;color:var(--warn)}
+.lrow{display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid #f1f5f9;font-size:13px;cursor:default}
+.lrow:hover{background:#f8fbfd}
+.lrow .nm{font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lrow .meta{color:var(--muted);font-size:12px;white-space:nowrap}
+.lrow.pick{cursor:pointer}
+.lrow.checked{background:#eef6fc}
+.lrow input[type=checkbox]{width:16px;height:16px;accent-color:var(--primary)}
+.gbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:#fbfcfd}
+.gbar .select,.gbar .input{width:auto;flex:1 1 140px;min-width:120px;padding:7px 10px}
+.ghead{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.ghead h2{margin:0;font-size:17px;font-weight:900;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kchip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:800;color:#475569}
+.kchip.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.gempty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-weight:700;text-align:center;padding:30px}
+@media(max-width:1100px){.glayout{grid-template-columns:1fr}.gcol{height:auto;min-height:0}.gcol .scroll{max-height:440px}}
 .thumb{width:100%;height:170px;border-radius:10px;background:#f1f5f9;border:1px solid #eef2f6;object-fit:contain}
 
 /* ---------- Modal ---------- */
@@ -208,6 +235,7 @@ table.grid{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
 <main class="wrap">
   <nav class="tabs" role="tablist">
     <button class="tab active" data-tab="tests" onclick="switchTab('tests')"><span class="dirty"></span>בדיקות <span class="badge" id="cnt-tests">0</span></button>
+    <button class="tab" data-tab="groups" onclick="switchTab('groups')"><span class="dirty"></span>רוטינות וקבוצות <span class="badge" id="cnt-groups">0</span></button>
     <button class="tab" data-tab="messages" onclick="switchTab('messages')"><span class="dirty"></span>הודעות חשובות <span class="badge" id="cnt-messages">0</span></button>
     <button class="tab" data-tab="final" onclick="switchTab('final')"><span class="dirty"></span>מסך סיום <span class="badge" id="cnt-final">0</span></button>
   </nav>
@@ -295,6 +323,34 @@ table.grid{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
     <div class="modal-foot">
       <button class="btn btn-primary" onclick="applyBulk()">החלף</button>
       <button class="btn" onclick="closeModal('bulkModal')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== New group modal ===== -->
+<div id="groupModal" class="backdrop" onmousedown="if(event.target===this)closeModal('groupModal')">
+  <div class="modal sm" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <div><h3 id="gmTitle">קבוצה חדשה</h3><p>רוטינה, סוג בדיקה או קבוצת מבחנה – אפשר להתחיל ריקה או להעתיק בדיקות מקבוצה קיימת</p></div>
+      <span class="spacer"></span>
+      <button class="btn btn-ghost icon-btn" onclick="closeModal('groupModal')" aria-label="סגירה">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fgrid">
+        <div class="field span2"><label>סוג</label>
+          <select id="gm_kind" class="select" onchange="gmPreview()">
+            <option value="r">רוטינה</option><option value="t">סוג בדיקה / קבוצה (test type)</option><option value="g">קבוצת מבחנה (tube_group)</option>
+          </select></div>
+        <div class="field span2"><label>שם <span class="req">*</span></label><input id="gm_name" class="input" placeholder="לדוגמה: רוטינה קבלה" oninput="gmPreview()"></div>
+        <div class="field span2"><label>להעתיק בדיקות מתוך</label><select id="gm_src" class="select" onchange="gmPreview()"></select></div>
+        <div class="field span2"><label>רק מקופה</label>
+          <select id="gm_kupa" class="select" onchange="gmPreview()"><option value="">כל הקופות</option><option>כללית</option><option>מאוחדת</option><option>מכבי</option><option>לאומית</option><option>אחר</option></select></div>
+      </div>
+      <div id="gm_preview" class="note info" style="margin-top:12px"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" onclick="createGroup()">צור קבוצה</button>
+      <button class="btn" onclick="closeModal('groupModal')">ביטול</button>
     </div>
   </div>
 </div>
@@ -624,12 +680,22 @@ async function reloadFile(key){
    רינדור
    ============================================================ */
 function switchTab(t){ ui.tab = t; render(); }
+const fileOf = t => t==='groups' ? 'tests' : t;
 
 function render(){
+  // שומרים פוקוס, מיקום סמן וגלילה של רשימות, כדי שרינדור מחדש לא "יקפיץ" את המסך
+  const ae = document.activeElement;
+  const fi = (ae && ae.id && $('view').contains(ae)) ? { id:ae.id, s:ae.selectionStart, e:ae.selectionEnd } : null;
+  const scrolls = {}; document.querySelectorAll('[data-ks]').forEach(el=>{ scrolls[el.id] = el.scrollTop; });
+  renderInner();
+  Object.entries(scrolls).forEach(([id,top])=>{ const el=$(id); if (el) el.scrollTop = top; });
+  if (fi){ const el=$(fi.id); if (el){ el.focus(); try{ if (fi.s!=null) el.setSelectionRange(fi.s, fi.e); }catch(e){} } }
+}
+function renderInner(){
   document.querySelectorAll('.tab').forEach(b=>{
     const k=b.dataset.tab; b.classList.toggle('active', k===ui.tab);
-    b.classList.toggle('has-dirty', fileStats(k).dirty);
-    $('cnt-'+k).textContent = files[k].rows.length;
+    b.classList.toggle('has-dirty', fileStats(fileOf(k)).dirty);
+    $('cnt-'+k).textContent = k==='groups' ? (gList('r').length + gList('t').length + gList('g').length) : files[k].rows.length;
   });
   const pill = $('connPill');
   pill.className = 'conn ' + (hasToken() ? (files.tests.source==='GitHub' ? 'ok' : 'bad') : '');
@@ -637,7 +703,7 @@ function render(){
 
   if (ui.loading){ $('saveBar').style.display='none'; $('view').innerHTML = `<div class="card loader"><div class="spin"></div>טוען נתונים...</div>`; return; }
 
-  const f = files[ui.tab];
+  const f = files[fileOf(ui.tab)];
   if (!f.loaded){
     $('saveBar').style.display='none';
     $('view').innerHTML = `
@@ -651,7 +717,7 @@ function render(){
           <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
             <button class="btn btn-primary" onclick="openSettings()">התחבר ל-GitHub</button>
             <button class="btn" onclick="pickLocalCSV()">בחר קבצי CSV מהמחשב</button>
-            <button class="btn" onclick="startEmpty('${ui.tab}')">התחל קובץ ריק</button>
+            <button class="btn" onclick="startEmpty('${fileOf(ui.tab)}')">התחל קובץ ריק</button>
           </div>
         </div>
       </div>`;
@@ -659,13 +725,14 @@ function render(){
   }
   renderSaveBar();
   if (ui.tab==='tests') renderTests();
+  else if (ui.tab==='groups') renderGroups();
   else if (ui.tab==='messages') renderMessages();
   else renderFinal();
 }
 function startEmpty(key){ loadIntoFile(key, '', 'חדש'); render(); }
 
 function renderSaveBar(){
-  const key = ui.tab, s = fileStats(key), f = files[key], bar = $('saveBar');
+  const key = fileOf(ui.tab), s = fileStats(key), f = files[key], bar = $('saveBar');
   bar.style.display = 'flex';
   bar.className = 'savebar' + (s.dirty ? ' dirty' : '');
   bar.innerHTML = `
@@ -856,6 +923,285 @@ function sortBy(col){
   render();
 }
 function clearFilters(){ Object.assign(ui, {q:'',kupa:'',lab:'',color:'',group:'',onlyIssues:false,onlyChanged:false}); render(); }
+
+/* ============================================================
+   רוטינות וקבוצות – ניהול קבוצות והוספת בדיקות בכמות
+   ============================================================ */
+const GKINDS = {
+  r: { col:'בדיקות רוטינה', label:'רוטינות',       one:'רוטינה',       multi:true  },
+  t: { col:'test type',     label:'סוגי בדיקה',    one:'סוג בדיקה',    multi:true  },
+  g: { col:'tube_group',    label:'קבוצות מבחנה',  one:'קבוצת מבחנה',  multi:false }
+};
+Object.assign(ui, { gKind:'r', gSel:'', gSearch:'', gq:'', gKupa:'', gSrc:'', gMemKupa:'', gChecked:new Set(), gPending:{r:[],t:[],g:[]} });
+let gListCache = [];
+
+function gHas(kind, r, name){
+  const K = GKINDS[kind], v = val('tests', r, K.col);
+  return K.multi ? splitMulti(v).includes(name) : norm(v) === name;
+}
+function gSetCell(r, col, v){ const h = hdr('tests', col); if (h) r.data = { ...r.data, [h]: v }; }
+function gAdd(kind, r, name){
+  const K = GKINDS[kind];
+  if (K.multi){ const l = splitMulti(val('tests',r,K.col)); if (!l.includes(name)){ l.push(name); gSetCell(r, K.col, joinMulti(l)); } }
+  else if (norm(val('tests',r,K.col)) !== name) gSetCell(r, K.col, name);
+}
+function gRemove(kind, r, name){
+  const K = GKINDS[kind];
+  if (K.multi) gSetCell(r, K.col, joinMulti(splitMulti(val('tests',r,K.col)).filter(x=>x!==name)));
+  else if (norm(val('tests',r,K.col)) === name) gSetCell(r, K.col, '');
+}
+function gList(kind){
+  if (!files.tests.loaded || !hdr('tests', GKINDS[kind].col)) return [];
+  const m = new Map(uniq('tests', GKINDS[kind].col));
+  ui.gPending[kind].forEach(n=>{ if (!m.has(n)) m.set(n, 0); });
+  return [...m.entries()].sort((a,b)=>a[0].localeCompare(b[0],'he'));
+}
+function gMembers(kind, name){ return files.tests.rows.filter(r=>gHas(kind, r, name)); }
+function srcMatch(src, r){
+  if (!src) return true;
+  if (src.startsWith('lab:')) return norm(val('tests',r,'מעבדה')) === src.slice(4);
+  return gHas(src[0], r, src.slice(2));
+}
+function srcOptions(selected, emptyLabel){
+  let h = `<option value="">${emptyLabel}</option>`;
+  ['r','t','g'].forEach(k=>{
+    const l = gList(k).filter(([,c])=>c>0); if (!l.length) return;
+    h += `<optgroup label="${GKINDS[k].label}">${l.map(([v,c])=>`<option value="${k}:${esc(v)}" ${selected===k+':'+v?'selected':''}>${esc(v)} (${c})</option>`).join('')}</optgroup>`;
+  });
+  const labs = uniq('tests','מעבדה');
+  if (labs.length) h += `<optgroup label="מעבדות">${labs.map(([v,c])=>`<option value="lab:${esc(v)}" ${selected==='lab:'+v?'selected':''}>${esc(v)} (${c})</option>`).join('')}</optgroup>`;
+  return h;
+}
+function sortByPrint(a,b){
+  const na=parseFloat(val('tests',a,'סדר הדפסה')), nb=parseFloat(val('tests',b,'סדר הדפסה'));
+  return (isNaN(na)?1e9:na)-(isNaN(nb)?1e9:nb);
+}
+function guessKupa(name, members){
+  const cnt = new Map(); members.forEach(r=>{ const k=norm(val('tests',r,'קופת חולים')); cnt.set(k,(cnt.get(k)||0)+1); });
+  if (cnt.size){ const top=[...cnt.entries()].sort((a,b)=>b[1]-a[1])[0]; if (top[1] === members.length) return top[0]; }
+  return KUPOT.find(k=>name.includes(k)) || (cnt.size===1 ? [...cnt.keys()][0] : '');
+}
+
+function setGKind(k){ ui.gKind = k; ui.gSel = ''; ui.gChecked.clear(); render(); }
+function selectGroupIdx(i){
+  const name = gListCache[i]; if (name == null) return;
+  ui.gSel = name; ui.gChecked.clear(); ui.gq=''; ui.gSrc=''; ui.gMemKupa='';
+  ui.gKupa = guessKupa(name, gMembers(ui.gKind, name));
+  render();
+}
+function gCandidates(){
+  const kind = ui.gKind, name = ui.gSel, q = normKey(ui.gq);
+  return files.tests.rows.filter(r=>{
+    if (gHas(kind, r, name)) return false;
+    if (ui.gKupa && norm(val('tests',r,'קופת חולים')) !== ui.gKupa) return false;
+    if (!srcMatch(ui.gSrc, r)) return false;
+    if (q && !normKey(Object.values(r.data).join(' ')).includes(q)) return false;
+    return true;
+  }).sort(sortByPrint);
+}
+
+function renderGroups(){
+  const kind = ui.gKind, K = GKINDS[kind];
+  if (!hdr('tests', K.col)){ $('view').innerHTML = `<div class="card empty">העמודה "${esc(K.col)}" לא קיימת בקובץ הבדיקות</div>`; return; }
+  const full = gList(kind);
+  if (ui.gSel && !full.some(([n])=>n===ui.gSel)) ui.gSel = '';
+  const qs = normKey(ui.gSearch);
+  const list = full.filter(([n])=>!qs || normKey(n).includes(qs));
+  gListCache = list.map(([n])=>n);
+
+  // ----- עמודה 1: רשימת הקבוצות -----
+  const col1 = `
+    <section class="card gcol">
+      <div style="padding:12px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--line)">
+        <div class="seg">${Object.entries(GKINDS).map(([k,v])=>`<button class="${k===kind?'on':''}" onclick="setGKind('${k}')">${v.label}</button>`).join('')}</div>
+        <div style="display:flex;gap:6px">
+          <input id="gSearch" class="input" style="padding:7px 10px" placeholder="חיפוש..." value="${esc(ui.gSearch)}" oninput="ui.gSearch=this.value;render()">
+          <button class="btn btn-primary" onclick="openNewGroup()" title="קבוצה חדשה">+ חדשה</button>
+        </div>
+      </div>
+      <div class="scroll" id="gListBox" data-ks style="padding:6px">
+        ${list.length ? list.map(([n,c],i)=>`<button class="gitem ${n===ui.gSel?'on':''} ${c===0?'zero':''}" onclick="selectGroupIdx(${i})"><span>${esc(n)}</span><span class="n">${c}</span></button>`).join('')
+          : `<div class="empty" style="padding:30px 10px">${full.length?'לא נמצא':'אין עדיין '+K.label}</div>`}
+      </div>
+    </section>`;
+
+  if (!ui.gSel){
+    $('view').innerHTML = `<div class="glayout">${col1}
+      <section class="card gcol" style="grid-column:span 2"><div class="gempty">
+        <div style="font-size:16px;color:var(--ink);font-weight:900">בחר ${K.one} מהרשימה, או צור חדשה</div>
+        <div>כאן אפשר להוסיף לקבוצה הרבה בדיקות בבת אחת, להעתיק בדיקות מקבוצה אחרת,<br>לשנות שם לקבוצה, לשכפל אותה או למחוק אותה.</div>
+        <button class="btn btn-primary" onclick="openNewGroup()">+ ${K.one} חדשה</button>
+      </div></section></div>`;
+    return;
+  }
+
+  // ----- עמודה 2: חברי הקבוצה -----
+  const members = gMembers(kind, ui.gSel).sort(sortByPrint);
+  const kupaCnt = new Map(); members.forEach(r=>{ const k=norm(val('tests',r,'קופת חולים'))||'—'; kupaCnt.set(k,(kupaCnt.get(k)||0)+1); });
+  const shownMembers = ui.gMemKupa ? members.filter(r=>(norm(val('tests',r,'קופת חולים'))||'—')===ui.gMemKupa) : members;
+  const rowMeta = r => {
+    const code = colorCode(val('tests',r,'צבע מבחנה'));
+    return `<span class="swatch" style="background:${COLOR_HEX[code]||'#fff'};margin:0"></span>`;
+  };
+  const col2 = `
+    <section class="card gcol">
+      <div class="ghead">
+        <h2>${esc(ui.gSel)} <span class="chip">${members.length} בדיקות</span></h2>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="renameGroup()">✎ שינוי שם</button>
+          <button class="btn btn-sm" onclick="openNewGroup(true)">⧉ שכפול לקבוצה חדשה</button>
+          <span class="spacer"></span>
+          <button class="btn btn-sm btn-danger" onclick="deleteGroup()">מחיקת הקבוצה</button>
+        </div>
+        ${kupaCnt.size > 1 ? `<div style="display:flex;gap:5px;flex-wrap:wrap">
+          <button class="kchip ${!ui.gMemKupa?'on':''}" onclick="ui.gMemKupa='';render()">הכל</button>
+          ${[...kupaCnt.entries()].map(([k,c])=>`<button class="kchip ${ui.gMemKupa===k?'on':''}" onclick="ui.gMemKupa='${esc(k)}';render()">${esc(k)} (${c})</button>`).join('')}
+        </div>` : ''}
+      </div>
+      <div class="scroll" id="gMemBox" data-ks>
+        ${shownMembers.length ? shownMembers.map(r=>`
+          <div class="lrow ${rowStatus(r)==='new'?'st-new':''}">
+            ${rowMeta(r)}
+            <span class="nm">${esc(val('tests',r,'שם בדיקה'))}</span>
+            <span class="kupa-tag">${esc(norm(val('tests',r,'קופת חולים'))||'—')}</span>
+            <span class="meta">${esc(val('tests',r,'מעבדה'))}</span>
+            <button class="btn btn-sm icon-btn btn-ghost" title="הסר מהקבוצה" onclick="removeMember(${r.id})">✕</button>
+          </div>`).join('')
+          : `<div class="gempty">הקבוצה ריקה עדיין.<br>בחר בדיקות מהרשימה שמשמאל והוסף אותן.</div>`}
+      </div>
+    </section>`;
+
+  // ----- עמודה 3: הוספת בדיקות -----
+  const cands = gCandidates();
+  [...ui.gChecked].forEach(id=>{ if (!cands.some(r=>r.id===id)) ui.gChecked.delete(id); });
+  const nChecked = ui.gChecked.size;
+  const allChecked = cands.length && nChecked === cands.length;
+  const col3 = `
+    <section class="card gcol">
+      <div class="ghead" style="gap:4px">
+        <h2 style="font-size:15px">הוספת בדיקות ל־${esc(ui.gSel)}</h2>
+        <div style="font-size:12px;color:var(--muted);font-weight:600">
+          ${K.multi ? 'בדיקה יכולה להיות בכמה '+K.label+' – ההוספה לא מוציאה אותה מקבוצות אחרות.' : '⚠ בדיקה יכולה להיות רק בקבוצת מבחנה אחת – הוספה תעביר אותה מהקבוצה הנוכחית שלה.'}
+        </div>
+      </div>
+      <div class="gbar">
+        <input id="gq" class="input" placeholder="חיפוש בדיקה..." value="${esc(ui.gq)}" oninput="ui.gq=this.value;render()">
+        <select class="select" onchange="ui.gKupa=this.value;render()">
+          <option value="">כל הקופות</option>${KUPOT.map(k=>`<option ${ui.gKupa===k?'selected':''}>${k}</option>`).join('')}
+        </select>
+        <select class="select" style="flex-basis:100%" onchange="ui.gSrc=this.value;render()">${srcOptions(ui.gSrc, 'מתוך: כל הבדיקות')}</select>
+      </div>
+      <div class="gbar" style="background:#fff">
+        <label class="check"><input type="checkbox" ${allChecked?'checked':''} ${cands.length?'':'disabled'} onchange="toggleAllCands(this.checked)"> סמן הכל (${cands.length})</label>
+        <span class="spacer"></span>
+        <button class="btn btn-sm btn-primary" ${nChecked?'':'disabled'} onclick="addChecked()">הוסף מסומנות (${nChecked})</button>
+        <button class="btn btn-sm" ${cands.length?'':'disabled'} onclick="addAllShown()">הוסף את כל ${cands.length} המוצגות</button>
+      </div>
+      <div class="scroll" id="gCandBox" data-ks>
+        ${cands.length ? cands.map(r=>{
+          const on = ui.gChecked.has(r.id);
+          const cur = !K.multi ? norm(val('tests',r,K.col)) : '';
+          return `<label class="lrow pick ${on?'checked':''}">
+            <input type="checkbox" ${on?'checked':''} onchange="toggleCand(${r.id},this.checked)">
+            ${rowMeta(r)}
+            <span class="nm">${esc(val('tests',r,'שם בדיקה'))}</span>
+            ${cur ? `<span class="tagchip sm" title="קבוצת המבחנה הנוכחית">${esc(cur)}</span>` : ''}
+            <span class="kupa-tag">${esc(norm(val('tests',r,'קופת חולים'))||'—')}</span>
+            <span class="meta">${esc(val('tests',r,'מעבדה'))}</span>
+          </label>`;}).join('')
+          : `<div class="gempty">אין בדיקות להוספה לפי הסינון.<br>${ui.gKupa||ui.gSrc||ui.gq ? 'נסה לשנות את הסינון.' : 'כל הבדיקות כבר בקבוצה.'}</div>`}
+      </div>
+    </section>`;
+
+  $('view').innerHTML = `<div class="glayout">${col1}${col2}${col3}</div>`;
+}
+
+function toggleCand(id, on){ on ? ui.gChecked.add(id) : ui.gChecked.delete(id); render(); }
+function toggleAllCands(on){ ui.gChecked = new Set(on ? gCandidates().map(r=>r.id) : []); render(); }
+function addRowsToGroup(rows){
+  if (!rows.length) return;
+  const kind = ui.gKind, K = GKINDS[kind];
+  if (!K.multi){
+    const moving = rows.filter(r=>norm(val('tests',r,K.col)));
+    if (moving.length && !confirm(`${moving.length} מהבדיקות כבר נמצאות בקבוצת מבחנה אחרת ויועברו ל"${ui.gSel}". להמשיך?`)) return;
+  }
+  rows.forEach(r=>gAdd(kind, r, ui.gSel));
+  ui.gChecked.clear();
+  toast(`${rows.length} בדיקות נוספו ל"${ui.gSel}" (טיוטה – לחץ "שמור ב-GitHub").`);
+  render();
+}
+function addChecked(){ addRowsToGroup(files.tests.rows.filter(r=>ui.gChecked.has(r.id))); }
+function addAllShown(){
+  const rows = gCandidates();
+  if (rows.length > 15 && !confirm(`להוסיף ${rows.length} בדיקות ל"${ui.gSel}"?`)) return;
+  addRowsToGroup(rows);
+}
+function removeMember(id){
+  const r = files.tests.rows.find(x=>x.id===id); if (!r) return;
+  gRemove(ui.gKind, r, ui.gSel);
+  if (!gMembers(ui.gKind, ui.gSel).length && !ui.gPending[ui.gKind].includes(ui.gSel)) ui.gPending[ui.gKind].push(ui.gSel);
+  render();
+}
+function renameGroup(){
+  const kind = ui.gKind, old = ui.gSel;
+  const nn = (prompt(`שם חדש ל"${old}":`, old) || '').trim();
+  if (!nn || nn === old) return;
+  if (/[,;|]/.test(nn) && GKINDS[kind].multi){ toast('השם לא יכול להכיל פסיק, נקודה-פסיק או |', 'err'); return; }
+  const exists = gList(kind).some(([n])=>n===nn);
+  if (exists && !confirm(`כבר קיימת קבוצה בשם "${nn}". לאחד את שתי הקבוצות?`)) return;
+  gMembers(kind, old).forEach(r=>{ gRemove(kind, r, old); gAdd(kind, r, nn); });
+  ui.gPending[kind] = ui.gPending[kind].filter(n=>n!==old);
+  if (!gMembers(kind, nn).length) ui.gPending[kind].push(nn);
+  ui.gSel = nn; toast('השם שונה בכל הבדיקות.'); render();
+}
+function deleteGroup(){
+  const kind = ui.gKind, name = ui.gSel, members = gMembers(kind, name);
+  if (!confirm(`למחוק את "${name}"?\n${members.length ? `הקבוצה תוסר מ-${members.length} בדיקות. הבדיקות עצמן לא יימחקו.` : ''}`)) return;
+  members.forEach(r=>gRemove(kind, r, name));
+  ui.gPending[kind] = ui.gPending[kind].filter(n=>n!==name);
+  ui.gSel = ''; toast('הקבוצה נמחקה.'); render();
+}
+
+// ----- קבוצה חדשה / שכפול -----
+function openNewGroup(copyCurrent=false){
+  $('gm_kind').value = ui.gKind;
+  $('gm_name').value = copyCurrent ? ui.gSel + ' (העתק)' : '';
+  $('gm_src').innerHTML = srcOptions(copyCurrent ? `${ui.gKind}:${ui.gSel}` : '', 'ריקה – אוסיף בדיקות אחר כך');
+  $('gm_kupa').value = '';
+  $('gmTitle').textContent = copyCurrent ? `שכפול "${ui.gSel}"` : 'קבוצה חדשה';
+  gmPreview(); openModal('groupModal');
+  setTimeout(()=>{ $('gm_name').focus(); $('gm_name').select(); }, 50);
+}
+function gmSourceRows(){
+  const src = $('gm_src').value, kupa = $('gm_kupa').value;
+  if (!src) return [];
+  return files.tests.rows.filter(r=>srcMatch(src, r) && (!kupa || norm(val('tests',r,'קופת חולים'))===kupa));
+}
+function gmPreview(){
+  const kind = $('gm_kind').value, name = $('gm_name').value.trim(), rows = gmSourceRows();
+  const exists = name && gList(kind).some(([n])=>n===name);
+  let msg = rows.length ? `${rows.length} בדיקות יועתקו לקבוצה החדשה.` : 'הקבוצה תיווצר ריקה, ואז תוכל להוסיף לה בדיקות.';
+  if (exists) msg += ` <b>קבוצה בשם הזה כבר קיימת – הבדיקות יתווספו אליה.</b>`;
+  if (kind==='g' && rows.length) msg += ' שים לב: בקבוצת מבחנה הבדיקות יועברו מהקבוצה הנוכחית שלהן.';
+  $('gm_preview').innerHTML = msg;
+}
+function createGroup(){
+  const kind = $('gm_kind').value, name = $('gm_name').value.trim(), rows = gmSourceRows();
+  if (!name){ toast('צריך לתת שם לקבוצה', 'err'); return; }
+  if (GKINDS[kind].multi && /[,;|]/.test(name)){ toast('השם לא יכול להכיל פסיק, נקודה-פסיק או |', 'err'); return; }
+  if (kind==='g'){
+    const moving = rows.filter(r=>norm(val('tests',r,'tube_group')));
+    if (moving.length && !confirm(`${moving.length} בדיקות יועברו מקבוצת המבחנה הנוכחית שלהן. להמשיך?`)) return;
+  }
+  rows.forEach(r=>gAdd(kind, r, name));
+  if (!rows.length && !ui.gPending[kind].includes(name)) ui.gPending[kind].push(name);
+  closeModal('groupModal');
+  ui.gKind = kind; ui.gSel = name; ui.gChecked.clear(); ui.gq=''; ui.gSrc=''; ui.gMemKupa='';
+  ui.gKupa = guessKupa(name, gMembers(kind, name));
+  toast(rows.length ? `נוצרה "${name}" עם ${rows.length} בדיקות.` : `נוצרה "${name}". עכשיו בחר בדיקות להוספה.`);
+  if (ui.tab !== 'groups') ui.tab = 'groups';
+  render();
+}
 
 /* ---------- הודעות ---------- */
 function renderMessages(){
@@ -1301,7 +1647,7 @@ document.addEventListener('keydown', e=>{
   if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){
     e.preventDefault();
     if ($('editorModal').classList.contains('open')) saveEditor();
-    else if (fileStats(ui.tab).dirty) saveToGitHub(ui.tab);
+    else if (fileStats(fileOf(ui.tab)).dirty) saveToGitHub(fileOf(ui.tab));
   }
   if ((e.ctrlKey||e.metaKey) && e.key==='Enter' && $('editorModal').classList.contains('open')){ e.preventDefault(); saveEditor(); }
 });
