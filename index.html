@@ -4398,7 +4398,7 @@ document.getElementById('btn-save-airtable').addEventListener('click', () => {
 
       // מקור ראשי החדש ביותר: קובץ CSV שיושב ישירות בריפו - הכי פשוט לעריכה ישירה ב-GitHub.
       try {
-        await loadFromCSVFile();
+        await loadFromCSVFile({ bustCache: true }); // תמיד קובץ טרי - כדי ששינויים מעמוד הניהול יופיעו מיד
         state.homeLoading = false;
         setDataStatus();
         closeAirtableModal();
