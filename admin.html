@@ -340,7 +340,7 @@ const FIELD_DEFS = {
     'סוג המבחנה':   {sec:'מבחנה', type:'list'},
     'כלל מבחנה':    {sec:'מבחנה', type:'select', options:[['shared','משותפת – מבחנה אחת לכמה בדיקות (shared)'],['per_test','נפרדת לכל בדיקה (per_test)']]},
     'כמות מבחנות':  {sec:'מבחנה', type:'number', min:1},
-    'tube_group':   {sec:'מבחנה', label:'קבוצת מבחנה (tube_group)', type:'list', hint:'בדיקות עם אותה קבוצה מתאחדות למבחנה אחת'},
+    'tube_group':   {sec:'מבחנה', label:'קבוצת מבחנה (tube_group)', type:'list', peek:true, span:2, hint:'בדיקות עם אותה קבוצה מתאחדות למבחנה אחת'},
     'תמונה בגט הב': {sec:'מבחנה', label:'תמונת מבחנה (שם קובץ בתיקיית images)', type:'image', span:2},
     'תיאור':        {sec:'טקסטים', type:'textarea', span:2},
     'הוראות מיוחדות':{sec:'טקסטים', type:'textarea', span:2, hint:'אם מלא – יופיע ⚠ ליד הבדיקה בטופס ובסל'}
@@ -984,6 +984,7 @@ function openEditor(file, id, prefill=null, afterId=null){
   });
   $('edBody').innerHTML = html;
   $('edBody').querySelectorAll('[data-multi]').forEach(el=>renderMulti(el.dataset.multi));
+  $('edBody').querySelectorAll('[data-peek]').forEach(el=>renderSinglePeek(el.dataset.peek));
   openModal('editorModal');
   setTimeout(()=>{ const first = $('edBody').querySelector('input,textarea,select'); first && first.focus(); }, 50);
 }
@@ -1017,7 +1018,7 @@ function fieldHtml(file, h, d, v){
     </div>`;
   } else if (d.type==='list'){
     const vals = uniq(file, norm(h));
-    input = `<input ${common} class="input" list="${id}_l" value="${esc(v)}" autocomplete="off"><datalist id="${id}_l">${vals.map(([x,c])=>`<option value="${esc(x)}">${c} שורות</option>`).join('')}</datalist>`;
+    input = `<input ${common} class="input" list="${id}_l" value="${esc(v)}" autocomplete="off" ${d.peek?`data-peek="${id}" data-col="${esc(norm(h))}" oninput="renderSinglePeek('${id}')"`:''}><datalist id="${id}_l">${vals.map(([x,c])=>`<option value="${esc(x)}">${c} שורות</option>`).join('')}</datalist>${d.peek?`<div class="peek" id="${id}_peek" style="margin-top:4px"></div>`:''}`;
   } else if (d.type==='number'){
     input = `<input ${common} class="input" type="number" step="any" ${d.min!=null?`min="${d.min}"`:''} value="${esc(v)}" dir="ltr" style="text-align:right">`;
   } else if (d.type==='date'){
@@ -1112,7 +1113,39 @@ function renderPeek(id){
       <label class="check" style="font-size:12px"><input type="checkbox" ${peekAllKupot?'checked':''} onchange="peekAllKupot=this.checked;refreshPeeks()"> כל הקופות</label>
     </div>${groups}`;
 }
-function refreshPeeks(){ $('edBody').querySelectorAll('[data-multi]').forEach(el=>renderPeek(el.dataset.multi)); }
+function refreshPeeks(){
+  $('edBody').querySelectorAll('[data-multi]').forEach(el=>renderPeek(el.dataset.multi));
+  $('edBody').querySelectorAll('[data-peek]').forEach(el=>renderSinglePeek(el.dataset.peek));
+}
+// קבוצת מבחנה (tube_group): ערך יחיד – מציג את הבדיקות שיתאחדו איתה לאותה מבחנה
+function renderSinglePeek(id){
+  const box = $(id+'_peek'), inp = $(id); if (!box || !inp || !editing) return;
+  const col = inp.dataset.col, v = norm(inp.value);
+  if (!v){ box.style.display='none'; return; }
+  box.style.display='flex';
+  const kupa = norm(editorValue('קופת חולים'));
+  const members = files.tests.rows.filter(r=>
+    r.id !== editing.id && norm(val('tests',r,col)).toLowerCase()===v.toLowerCase() &&
+    (peekAllKupot || !kupa || norm(val('tests',r,'קופת חולים'))===kupa));
+  members.sort((a,b)=>{ const na=parseFloat(val('tests',a,'סדר הדפסה')), nb=parseFloat(val('tests',b,'סדר הדפסה')); return (isNaN(na)?1e9:na)-(isNaN(nb)?1e9:nb); });
+  // בדיקת עקביות: כל הבדיקות באותה קבוצה צריכות אותו צבע מבחנה
+  const myColor = colorCode(editorValue('צבע מבחנה'));
+  const colors = new Set(members.map(r=>colorCode(val('tests',r,'צבע מבחנה'))||'?'));
+  if (myColor) colors.add(myColor);
+  const mixed = colors.size > 1;
+  box.innerHTML = `<div class="peek-head">בדיקות שיתאחדו לאותה מבחנה
+      <span class="spacer"></span>
+      <label class="check" style="font-size:12px"><input type="checkbox" ${peekAllKupot?'checked':''} onchange="peekAllKupot=this.checked;refreshPeeks()"> כל הקופות</label>
+    </div>
+    <div>
+      <div class="peek-group-title">${esc(v)} · ${members.length} בדיקות נוספות${peekAllKupot||!kupa?'':' בקופה '+esc(kupa)}</div>
+      ${members.length ? `<div class="peek-list">${members.map(r=>{
+        const code = colorCode(val('tests',r,'צבע מבחנה'));
+        return `<span class="peek-item"><span class="swatch" style="background:${COLOR_HEX[code]||'#fff'};margin:0"></span>${esc(val('tests',r,'שם בדיקה'))}${peekAllKupot?` <span class="k">${esc(norm(val('tests',r,'קופת חולים')))}</span>`:''}</span>`;
+      }).join('')}</div>` : `<div class="peek-empty">אין בדיקות נוספות בקבוצה הזו – הבדיקה תקבל מבחנה משלה</div>`}
+    </div>
+    ${mixed ? `<div class="note warn" style="padding:6px 10px">⚠ בקבוצה יש בדיקות עם צבעי מבחנה שונים (${[...colors].map(c=>COLOR_HE[c]||'לא מזוהה').join(', ')}). בדיקות שמתאחדות למבחנה אחת צריכות בדרך כלל אותו צבע.</div>` : ''}`;
+}
 $('edBody').addEventListener('change', e=>{ if (!e.target.closest('[data-multi]')) refreshPeeks(); });
 
 function saveEditor(){
