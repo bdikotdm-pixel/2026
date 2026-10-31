@@ -1194,7 +1194,19 @@ window.setCatalogViewMode = (mode) => {
      **********************/
     const CACHE_KEY = 'labtests_data_cache_v1';
     const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-    const GITHUB_IMAGE_BASE = 'https://raw.githubusercontent.com/ezzob1995-cmyk/lab-tests/main/images/';
+    // תמונות נטענות מתיקיית images שבאותו ריפו (bdikotdm-pixel/2026).
+    // אם תמונה לא נמצאת שם - יש גיבוי אוטומטי לריפו הישן (ראו OLD_IMAGE_BASE למטה).
+    const GITHUB_IMAGE_BASE = 'images/';
+    const OLD_IMAGE_BASE = 'https://raw.githubusercontent.com/ezzob1995-cmyk/lab-tests/main/images/';
+    document.addEventListener('error', (e) => {
+      const img = e.target;
+      if (!img || img.tagName !== 'IMG' || img.dataset.imgFallback) return;
+      const src = img.getAttribute('src') || '';
+      if (!src.startsWith(GITHUB_IMAGE_BASE)) return;
+      img.dataset.imgFallback = '1';
+      e.stopPropagation(); // לא להפעיל את onerror המקומי לפני שמנסים את הגיבוי
+      img.src = OLD_IMAGE_BASE + src.slice(GITHUB_IMAGE_BASE.length);
+    }, true);
 
     const saveDataToCache = (data) => {
       try {
