@@ -666,6 +666,53 @@ button{
 }
 </style>
 
+
+<style id="print-form-refresh">
+/* ===== עיצוב מחודש לטופס המודפס – צבעים, קווים ופינות. לא משנה גבהים כדי שהטופס יישאר בעמוד אחד ===== */
+.print-page{ --fp:#155E8A; --fp-50:#EAF2F8; --fp-100:#C9DDEB; --fink:#0f172a; --fline:#cbd5e1; --fline-2:#e2e8f0; }
+
+/* כותרת */
+.print-page .header-top{ border-bottom:3px solid var(--fp) !important; position:relative; }
+.print-page .header-top::after{ content:''; position:absolute; bottom:-3px; right:0; width:90px; height:3px; background:#C98A2C; }
+.print-page .hebrew-name{ color:var(--fink); font-weight:900; letter-spacing:-.01em; }
+.print-page .english-name{ color:var(--fp); font-weight:700; letter-spacing:.03em; }
+.print-page .badge{ background:var(--fp) !important; color:#fff !important; border-radius:999px; padding:3px 12px; }
+.print-page .hmo-logo.kupa-text{ color:var(--fp); }
+.print-page .prod-date{ color:#94a3b8; }
+
+/* פרטים + מדבקה */
+.print-page .meta-item .lbl{ color:var(--fp); font-size:10.5px; font-weight:900; letter-spacing:.01em; }
+.print-page .meta-item .val{ background:#fff !important; border-bottom:1.5px solid #94a3b8 !important; border-radius:0; }
+.print-page .sticker-box{ border:2px dashed #94a3b8 !important; border-radius:14px; background:#fff !important; color:#94a3b8; font-weight:800; }
+
+/* באנר מעבדה (כללית) */
+.print-page .lab-banner{ background:var(--fp-50) !important; border:1.5px solid var(--fp) !important; color:var(--fp); border-radius:12px; }
+
+/* טבלאות */
+.print-page .print-table{ border-collapse:separate !important; border-spacing:0; border:1.5px solid #334155 !important; border-radius:10px; overflow:hidden; }
+.print-page .print-table th, .print-page .print-table td{ border:0 !important; border-bottom:1px solid var(--fline) !important; border-left:1px solid var(--fline-2) !important; }
+.print-page .print-table th:last-child, .print-page .print-table td:last-child{ border-left:0 !important; }
+.print-page .print-table tbody tr:last-child td{ border-bottom:0 !important; }
+.print-page .print-table thead th{ background:var(--fp) !important; color:#fff !important; font-weight:800; border-left-color:rgba(255,255,255,.25) !important; }
+.print-page .print-table tbody tr:nth-child(even) td{ background:#f8fafc; }
+.print-page .print-table td.font-bold, .print-page .print-table td{ color:var(--fink); }
+.print-page .print-table .lab-sep td{ background:var(--fp-50) !important; color:#0f4f76; font-weight:900; box-shadow:inset -4px 0 0 var(--fp); border-top:0 !important; }
+.print-page .chk{ border:1.5px solid #334155 !important; border-radius:3px; color:var(--fp); }
+
+/* חתימה + מבחנות */
+.print-page .sign-box-print, .print-page .tube-strip{ border:1px solid var(--fp-100) !important; border-radius:14px; }
+.print-page .sign-title-print, .print-page .tube-strip-title{ color:var(--fp); }
+.print-page .tube-item{ border:1.5px solid #94a3b8 !important; border-radius:10px; }
+
+/* טלפונים */
+.print-page .footer-card{ background:var(--fp-50) !important; border:1px solid var(--fp-100) !important; border-radius:14px; padding:8px 14px !important; }
+.print-page .footer-card-title{ color:var(--fp); font-size:12.5px; margin-bottom:4px !important; }
+.print-page .fc-grid{ display:grid !important; grid-template-columns:1fr; gap:2px !important; }
+.print-page .fc-site{ display:flex; justify-content:center; align-items:baseline; gap:14px; white-space:nowrap !important; font-size:12px; color:#334155; }
+.print-page .fc-site b{ min-width:62px; text-align:right; }
+.print-page .fc-site b{ color:var(--fink); font-weight:900; }
+.print-page .fc-site span{ direction:rtl; unicode-bidi:plaintext; }
+</style>
 </head>
 
 <body class="min-h-screen flex flex-col">
@@ -3790,10 +3837,10 @@ const renderPrintPreview = () => {
         <div class="print-footer">
 
           <div class="footer-card">
-            <div class="footer-card-title">טלפונים של המרכז הירושלמי לבריאות הנפש:</div>
-            <div class="footer-card-lines">
-              <div>כפר שאול – טל: 02-6551510 | פקס: 02-6551400 | נייד: 0506261768</div>
-              <div>איתנים – טל: 02-5705152 | פקס: 02-5705100 | נייד: 0506253774</div>
+            <div class="footer-card-title">טלפונים של המרכז הירושלמי לבריאות הנפש</div>
+            <div class="footer-card-lines fc-grid">
+              <div class="fc-site"><b>כפר שאול</b><span>טל׳ 02-6551510</span><span>פקס 02-6551400</span><span>נייד 050-6261768</span></div>
+              <div class="fc-site"><b>איתנים</b><span>טל׳ 02-5705152</span><span>פקס 02-5705100</span><span>נייד 050-6253774</span></div>
             </div>
           </div>
         </div>
