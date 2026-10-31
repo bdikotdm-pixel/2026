@@ -558,17 +558,21 @@
 }
 
     /* ===== פס מבחנות נדרשות בטופס המודפס ===== */
-    .tube-strip { margin-top:8px; border:1px solid #cbd5e1; border-radius:14px; padding:5px 10px 6px; background:#fff; break-inside:avoid; page-break-inside:avoid; }
-    .tube-strip-title { font-size:12px; font-weight:900; color:#0f172a; margin-bottom:2px; text-align:right; }
-    .tube-strip-items { display:flex; flex-wrap:wrap; justify-content:center; gap:4px 8px; }
-    .tube-item { display:flex; flex-direction:column; align-items:center; width:56px; }
-    .tube-img { width:42px; height:42px; display:flex; align-items:center; justify-content:center; }
-    .tube-img img { max-width:100%; max-height:100%; object-fit:contain; }
-    .tube-name { margin-top:2px; font-size:12px; font-weight:900; color:#0f172a; line-height:1.15; text-align:center; }
-    .tube-count { font-size:11px; font-weight:800; color:#475569; line-height:1.1; }
+    .tube-strip { margin-top:8px; border:1px solid #cbd5e1; border-radius:14px; padding:5px 10px 8px; background:#fff; break-inside:avoid; page-break-inside:avoid; }
+    .tube-strip-title { font-size:12px; font-weight:900; color:#0f172a; margin-bottom:5px; text-align:right; }
+    .tube-strip-items { display:flex; flex-wrap:wrap; justify-content:center; gap:6px 8px; }
+    .tube-item { display:flex; flex-direction:column; align-items:center; width:58px; padding:6px 4px 4px; border:1.5px solid #334155; border-radius:9px; background:#fff; }
+    .tube-name { margin-top:3px; font-size:12px; font-weight:900; color:#0f172a; line-height:1.15; text-align:center; }
+    .tube-count { font-size:11px; font-weight:800; color:#334155; line-height:1.15; }
     .css-tube { display:flex; flex-direction:column; align-items:center; }
-    .css-tube-cap { width:20px; height:8px; border-radius:3px 3px 0 0; border:1px solid rgba(0,0,0,.25); }
-    .css-tube-body { width:13px; height:32px; border:1px solid #64748b; border-top:0; border-radius:0 0 7px 7px; background:#f8fafc; }
+    .css-tube-cap { width:22px; height:8px; border-radius:3px 3px 1px 1px; border:1px solid rgba(0,0,0,.3); }
+    .css-tube-body { width:14px; height:32px; border:1.5px solid #64748b; border-top:0; border-radius:0 0 8px 8px; background:#f1f5f9; }
+    /* הטלפונים מוצמדים לתחתית העמוד, ופס המבחנות ממש מעליהם */
+    @media print {
+      .print-page.pin-footer { display:flex !important; flex-direction:column; min-height:270mm; }
+      .print-spacer { flex:1 1 auto; }
+      .print-page .tube-strip { margin-bottom:0; }
+    }
 
     /* ===== תגיות הוראות מיוחדות (סל בדיקות) ===== */
     .instr-chips { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
@@ -3671,13 +3675,9 @@ const renderPrintPreview = () => {
     const total = groups.reduce((acc, g) => acc + (g.count || 0), 0);
     const items = groups.map(g => {
       const code = g.color || 'other';
-      const rep = tests.find(t => (g.tests || []).includes(t.name) && t.image);
       const hex = TUBE_COLOR_HEX[code] || TUBE_COLOR_HEX.other;
-      const visual = rep
-        ? `<img src="${escapeAttr(rep.image)}" alt="" loading="eager">`
-        : `<span class="css-tube"><span class="css-tube-cap" style="background:${hex}"></span><span class="css-tube-body"></span></span>`;
       return `<div class="tube-item">
-        <div class="tube-img">${visual}</div>
+        <span class="css-tube"><span class="css-tube-cap" style="background:${hex}"></span><span class="css-tube-body"></span></span>
         <div class="tube-name">${escapeHtml(getColorName(code))}</div>
         <div class="tube-count" dir="ltr">×${g.count || 1}</div>
       </div>`;
@@ -3688,13 +3688,13 @@ const renderPrintPreview = () => {
     };
   };
   // כמה שורות ריקות מפנים כדי שהפס ייכנס באותו עמוד (עד 11 מבחנות בשורה אחת)
-  const stripRowsCost = (n) => n === 0 ? 0 : (n > 11 ? 7 : 4);
+  const stripRowsCost = (n) => n === 0 ? 0 : (n > 10 ? 7 : 4);
   // עמוד A4 מכיל בערך 19 שורות טבלה יחד עם הכותרת והפוטר. אם אין מקום – הפס לא יודפס בעמוד הזה (הטופס נשאר כמו קודם)
   const PAGE_ROW_CAPACITY = 19;
 
-  const renderSinglePrintPage = ({labForMeta = '', leftRowsHtml = '', rightRowsHtml = '', thirdRowsHtml = '', leftCount = 0, rightCount = 0, thirdCount = 0, rowsPerCol = 18, cols = 2, showLabTitle = false, tubeStrip = ''}) => {
+  const renderSinglePrintPage = ({labForMeta = '', leftRowsHtml = '', rightRowsHtml = '', thirdRowsHtml = '', leftCount = 0, rightCount = 0, thirdCount = 0, rowsPerCol = 18, cols = 2, showLabTitle = false, tubeStrip = '', pinFooter = false}) => {
     return `
-      <div class="print-page" dir="rtl">
+      <div class="print-page${pinFooter ? ' pin-footer' : ''}" dir="rtl">
 
         <!-- Header -->
         <div class="print-header">
@@ -3756,6 +3756,7 @@ const renderPrintPreview = () => {
           ${cols === 3 ? ('<div class="col">' + table(thirdRowsHtml, thirdCount, rowsPerCol) + '</div>') : ''}
         </div>
 
+        <div class="print-spacer"></div>
         ${tubeStrip}
 
         <!-- Footer -->
@@ -3827,7 +3828,8 @@ const renderPrintPreview = () => {
         leftCount: leftTests.length,
         rightCount: rightTests.length,
         rowsPerCol,
-        tubeStrip: strip.html
+        tubeStrip: strip.html,
+        pinFooter: needRows <= 18 // עמוד מלא לגמרי – הפוטר ממילא בתחתית, לא נוגעים
       });
     }).join('\n');
 
@@ -3902,7 +3904,8 @@ const renderPrintPreview = () => {
     thirdCount,
     rowsPerCol,
     cols,
-    tubeStrip: strip.html
+    tubeStrip: strip.html,
+    pinFooter: Math.max(...colCounts) <= 18
   });
 };
 
