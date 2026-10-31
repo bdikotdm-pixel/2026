@@ -564,11 +564,21 @@
     .print-only-date { display:none; }
     @media print { .print-only-date { display:inline; } .date-val { background:#fff !important; box-shadow:none !important; } }
 
+    /* ===== שורת חתימה (ימין) + מבחנות (שמאל) ===== */
+    .sign-tubes-row { display:flex; gap:10px; align-items:stretch; margin-top:8px; break-inside:avoid; page-break-inside:avoid; }
+    .sign-box-print { flex:0 0 26%; border:1px solid #cbd5e1; border-radius:14px; padding:6px 12px 12px; background:#fff; display:flex; flex-direction:column; }
+    .sign-title-print { font-size:12px; font-weight:900; color:#0f172a; }
+    .sign-line-print { margin-top:auto; border-bottom:1.5px solid #334155; height:26px; }
+    .sign-tubes-row .tube-strip { flex:1 1 auto; min-width:0; margin-top:0; }
+    .sign-tubes-row.no-tubes { margin-top:4px; }
+    .sign-tubes-row.no-tubes .sign-box-print { flex:0 0 42%; flex-direction:row; align-items:flex-end; gap:10px; padding:3px 12px 4px; border-radius:10px; }
+    .sign-tubes-row.no-tubes .sign-line-print { flex:1; height:14px; }
+
     /* ===== פס מבחנות נדרשות בטופס המודפס ===== */
     .tube-strip { margin-top:8px; border:1px solid #cbd5e1; border-radius:14px; padding:5px 10px 8px; background:#fff; break-inside:avoid; page-break-inside:avoid; }
     .tube-strip-title { font-size:12px; font-weight:900; color:#0f172a; margin-bottom:5px; text-align:right; }
-    .tube-strip-items { display:flex; flex-wrap:wrap; justify-content:center; gap:6px 8px; }
-    .tube-item { display:flex; flex-direction:column; align-items:center; width:58px; padding:6px 4px 4px; border:1.5px solid #334155; border-radius:9px; background:#fff; }
+    .tube-strip-items { display:flex; flex-wrap:wrap; justify-content:center; gap:6px 6px; }
+    .tube-item { display:flex; flex-direction:column; align-items:center; width:52px; padding:6px 4px 4px; border:1.5px solid #334155; border-radius:9px; background:#fff; }
     .tube-name { margin-top:3px; font-size:12px; font-weight:900; color:#0f172a; line-height:1.15; text-align:center; }
     .tube-count { font-size:11px; font-weight:800; color:#334155; line-height:1.15; }
     .css-tube { display:flex; flex-direction:column; align-items:center; }
@@ -3703,7 +3713,7 @@ const renderPrintPreview = () => {
     };
   };
   // כמה שורות ריקות מפנים כדי שהפס ייכנס באותו עמוד (עד 11 מבחנות בשורה אחת)
-  const stripRowsCost = (n) => n === 0 ? 0 : (n > 10 ? 7 : 4);
+  const stripRowsCost = (n) => n === 0 ? 0 : (n > 8 ? 10 : 5);
   // עמוד A4 מכיל בערך 19 שורות טבלה יחד עם הכותרת והפוטר. אם אין מקום – הפס לא יודפס בעמוד הזה (הטופס נשאר כמו קודם)
   const PAGE_ROW_CAPACITY = 19;
 
@@ -3776,16 +3786,16 @@ const renderPrintPreview = () => {
         </div>
 
         <div class="print-spacer"></div>
-        ${tubeStrip}
+        <div class="sign-tubes-row${tubeStrip ? '' : ' no-tubes'}">
+          <div class="sign-box-print">
+            <div class="sign-title-print">חתימה</div>
+            <div class="sign-line-print"></div>
+          </div>
+          ${tubeStrip}
+        </div>
 
         <!-- Footer -->
         <div class="print-footer">
-          <div class="footer-top footer-top-simple">
-            <div class="footer-sign footer-sign-only">
-              <div class="footer-sign-label">חתימה</div>
-              <div class="footer-sign-line"></div>
-            </div>
-          </div>
 
           <div class="footer-card">
             <div class="footer-card-title">טלפונים של המרכז הירושלמי לבריאות הנפש:</div>
@@ -3948,7 +3958,7 @@ const renderPrintPreview = () => {
 
   const rowsPerCol = strip.count
     ? Math.max(PAGE_ROW_CAPACITY - cost - 1, ...colCounts) // keep room for tube strip + footer on same page
-    : Math.max(16, ...colCounts) + extraBlankRows;
+    : Math.max(16, ...colCounts) + (Math.max(...colCounts) >= 16 ? 0 : extraBlankRows); // שורת החתימה תופסת את מקום השורות הריקות
 
   return renderSinglePrintPage({
     labForMeta: '',
