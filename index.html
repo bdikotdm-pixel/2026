@@ -557,6 +557,20 @@
   .important-message-content { font-size: 13px; line-height: 1.65; }
 }
 
+    /* ===== תגיות הוראות מיוחדות (סל בדיקות) ===== */
+    .instr-chips { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+    .instr-chip { display:inline-flex; align-items:center; gap:9px; padding:10px 16px; border-radius:14px; border:1.5px solid; font-size:17px; font-weight:800; line-height:1.4; max-width:100%; }
+    .instr-chip .instr-ic { font-size:22px; line-height:1; flex:none; }
+    .instr-send  { background:#eff6ff; border-color:#93c5fd; color:#1e40af; }
+    .instr-cold  { background:#ecfeff; border-color:#67e8f9; color:#155e75; }
+    .instr-fast  { background:#fffbeb; border-color:#fcd34d; color:#92400e; }
+    .instr-light { background:#f5f3ff; border-color:#c4b5fd; color:#5b21b6; }
+    .instr-time  { background:#fef2f2; border-color:#fca5a5; color:#991b1b; }
+    .instr-warm  { background:#fff7ed; border-color:#fdba74; color:#9a3412; }
+    .instr-drug  { background:#fdf2f8; border-color:#f9a8d4; color:#9d174d; }
+    .instr-warn  { background:#fffbeb; border-color:#fbbf24; color:#92400e; }
+    @media (max-width:768px){ .instr-chip { font-size:15px; padding:8px 12px; } .instr-chip .instr-ic { font-size:19px; } }
+
     .zoomable-image-btn { border: 0; background: transparent; padding: 0; cursor: zoom-in; }
     .zoomable-image-btn:focus-visible { outline: 3px solid rgba(37, 99, 235, 0.35); outline-offset: 4px; border-radius: 24px; }
     .image-lightbox-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.82); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; padding: 24px; z-index: 80; }
@@ -3249,6 +3263,26 @@ ${(state.routineFilter || state.typeFilter) ? `
   `;
 };
 
+// ===== הוראות מיוחדות כתגיות חכמות =====
+    // מזהה את סוג ההוראה לפי מילות מפתח ומציג אייקון וצבע מתאימים. הסדר חשוב: ההתאמה הראשונה קובעת.
+    const INSTRUCTION_TYPES = [
+      { cls:'cold',  icon:'❄️', words:['קירור','בקירור','קרח','מקרר','צונן','4 מעלות','cold','ice'] },
+      { cls:'light', icon:'🌑', words:['אור','חושך','חשוך','אלומיניום','נייר כסף','light'] },
+      { cls:'warm',  icon:'🌡️', words:['37','חום גוף','חימום','מחומם','warm'] },
+      { cls:'fast',  icon:'🍽️', words:['צום','בצום','ללא אוכל','לא לאכול','fasting'] },
+      { cls:'time',  icon:'⏱️', words:['דחוף','מיד','תוך','שעתיים','שעה','דקות','בהקדם','urgent','stat'] },
+      { cls:'drug',  icon:'💊', words:['לפני מנה','לפני נטילת','מנת','רמת תרופה','trough'] },
+      { cls:'send',  icon:'🚚', words:['לשלוח','שליחה','להעביר','הדסה','שערי צדק','מעבדה חיצונית','send'] }
+    ];
+    const classifyInstruction = (text) => {
+      const t = norm(text).toLowerCase();
+      return INSTRUCTION_TYPES.find(type => type.words.some(w => t.includes(w.toLowerCase()))) || { cls:'warn', icon:'⚠️' };
+    };
+    const renderInstructionChip = (text) => {
+      const type = classifyInstruction(text);
+      return `<span class="instr-chip instr-${type.cls}"><span class="instr-ic" aria-hidden="true">${type.icon}</span><span>${escapeHtml(text)}</span></span>`;
+    };
+
 const renderCart = () => {
       if (state.selectedTests.length === 0) {
         return `
@@ -3401,7 +3435,9 @@ const renderCart = () => {
                           </span>
                         ` : ''}
                       </div>
-                      <p class="mt-3 text-base text-slate-600 font-medium leading-relaxed">${instructionText}</p>
+                      ${instructionList.length
+                        ? `<div class="instr-chips">${instructionList.map(renderInstructionChip).join('')}</div>`
+                        : `<p class="mt-3 text-sm text-slate-400 font-medium">אין הוראות מיוחדות למבחנה זו.</p>`}
 
                       <div class="mt-5 flex flex-wrap gap-3">
                         <button class="min-h-[52px] px-5 rounded-2xl bg-slate-100 text-slate-800 font-black hover:bg-slate-200 transition-colors inline-flex items-center gap-2"
