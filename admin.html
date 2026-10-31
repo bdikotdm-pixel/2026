@@ -119,6 +119,19 @@ table.grid{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
 .pill{font-size:11px;font-weight:900;border-radius:999px;padding:2px 9px;border:1px solid var(--line)}
 .pill.on{background:var(--ok-soft);color:var(--ok);border-color:#99f6e4}
 .pill.off{background:#f1f5f9;color:var(--muted)}
+.tagchip{display:inline-flex;align-items:center;gap:4px;background:var(--primary-soft);color:var(--primary);border:1px solid #c7dbea;border-radius:999px;padding:3px 6px 3px 10px;font-weight:800;font-size:12px;line-height:1.3}
+.tagchip button{border:0;background:rgba(21,94,138,.12);color:var(--primary);width:18px;height:18px;border-radius:50%;padding:0;font-size:11px;line-height:18px}
+.tagchip button:hover{background:var(--danger);color:#fff}
+.tagchip.sm{padding:1px 8px;font-size:11px;background:#f1f5f9;color:#475569;border-color:var(--line)}
+.multi-chips{display:flex;flex-wrap:wrap;gap:6px;min-height:6px}
+.multi-add{display:flex;gap:6px}
+.peek{border:1px solid var(--line);border-radius:12px;background:#fbfcfd;padding:10px 12px;display:flex;flex-direction:column;gap:10px}
+.peek-head{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:#334155}
+.peek-group-title{font-size:12px;font-weight:900;color:var(--primary);margin-bottom:5px}
+.peek-list{display:flex;flex-wrap:wrap;gap:5px}
+.peek-item{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;background:#fff;border:1px solid var(--line);border-radius:8px;padding:2px 8px}
+.peek-item .k{color:var(--muted);font-weight:600;font-size:11px}
+.peek-empty{font-size:12px;color:var(--muted);font-weight:600}
 .thumb{width:100%;height:170px;border-radius:10px;background:#f1f5f9;border:1px solid #eef2f6;object-fit:contain}
 
 /* ---------- Modal ---------- */
@@ -321,8 +334,8 @@ const FIELD_DEFS = {
     'קוד בדיקה':    {sec:'פרטי הבדיקה', type:'text', ltr:true},
     'מעבדה':        {sec:'פרטי הבדיקה', type:'list', hint:'קובע את חלוקת הטופס המודפס לפי מעבדה'},
     'סדר הדפסה':    {sec:'פרטי הבדיקה', type:'number', hint:'מספר נמוך = מופיע קודם בטופס'},
-    'test type':    {sec:'פרטי הבדיקה', label:'סוג בדיקה (test type)', type:'list', hint:'מופיע כמסנן "סוג בדיקה" בקטלוג'},
-    'בדיקות רוטינה':{sec:'פרטי הבדיקה', type:'list', hint:'מופיע כמסנן "רוטינה" בקטלוג'},
+    'בדיקות רוטינה':{sec:'רוטינות וקבוצות', label:'רוטינות', type:'multi', span:2, hint:'אפשר כמה רוטינות. הבדיקה תופיע תחת כל אחת מהן במסנן "רוטינה" בקטלוג'},
+    'test type':    {sec:'רוטינות וקבוצות', label:'סוג בדיקה / קבוצה (test type)', type:'multi', span:2, hint:'אפשר כמה קבוצות. הבדיקה תופיע תחת כל אחת מהן במסנן "סוג בדיקה" בקטלוג'},
     'צבע מבחנה':    {sec:'מבחנה', type:'color', req:true},
     'סוג המבחנה':   {sec:'מבחנה', type:'list'},
     'כלל מבחנה':    {sec:'מבחנה', type:'select', options:[['shared','משותפת – מבחנה אחת לכמה בדיקות (shared)'],['per_test','נפרדת לכל בדיקה (per_test)']]},
@@ -358,7 +371,7 @@ const files = {
   messages:{ headers:[], rows:[], deleted:0, sha:null, source:'', loaded:false },
   final:   { headers:[], rows:[], deleted:0, sha:null, source:'', loaded:false }
 };
-let ui = { tab:'tests', loading:true, q:'', kupa:'', lab:'', color:'', onlyIssues:false, onlyChanged:false, sort:{col:'סדר הדפסה', dir:1} };
+let ui = { tab:'tests', loading:true, q:'', kupa:'', lab:'', color:'', group:'', onlyIssues:false, onlyChanged:false, sort:{col:'סדר הדפסה', dir:1} };
 let imageList = [];
 let editing = null; // {file, id, isNew, afterId}
 let nextId = 1;
@@ -392,6 +405,12 @@ function imageUrl(name){
   if (/^https?:\/\//i.test(s)) return s;
   return `https://raw.githubusercontent.com/${cfg.owner}/${cfg.repo}/${cfg.branch}/${cfg.imagesDir}/${encodeURIComponent(s)}`;
 }
+
+// עמודות שיכולות להכיל כמה ערכים (מופרדים בפסיק) – כך גם index.html קורא אותן
+const MULTI_COLS = ['בדיקות רוטינה','test type'];
+const isMulti = (file, name) => file==='tests' && MULTI_COLS.includes(norm(name));
+const splitMulti = v => norm(v).split(/\s*[;|,\n]\s*/).map(norm).filter(Boolean);
+const joinMulti = arr => arr.join(', ');
 
 function hdr(file, name){ // מוצא את שם העמודה בפועל (סובלני לרווחים)
   return files[file].headers.find(h => norm(h) === name) ?? null;
@@ -686,6 +705,10 @@ function filteredTests(){
     if (ui.kupa && norm(val('tests',r,'קופת חולים')) !== ui.kupa) return false;
     if (ui.lab && norm(val('tests',r,'מעבדה')) !== ui.lab) return false;
     if (ui.color && (colorCode(val('tests',r,'צבע מבחנה')) || 'other') !== ui.color) return false;
+    if (ui.group){
+      const col = ui.group.startsWith('r:') ? 'בדיקות רוטינה' : 'test type';
+      if (!splitMulti(val('tests',r,col)).includes(ui.group.slice(2))) return false;
+    }
     if (ui.onlyIssues && !testIssues(r).length) return false;
     if (ui.onlyChanged && !rowStatus(r)) return false;
     if (q){
@@ -713,7 +736,12 @@ function filteredTests(){
 
 function uniq(file, name){
   const m = new Map();
-  files[file].rows.forEach(r=>{ const v = norm(val(file,r,name)); if (v) m.set(v, (m.get(v)||0)+1); });
+  const multi = isMulti(file, name);
+  files[file].rows.forEach(r=>{
+    const raw = val(file,r,name);
+    const list = multi ? splitMulti(raw) : [norm(raw)];
+    list.forEach(v=>{ if (v) m.set(v, (m.get(v)||0)+1); });
+  });
   return [...m.entries()].sort((a,b)=>a[0].localeCompare(b[0],'he'));
 }
 
@@ -758,9 +786,14 @@ function renderTests(){
           <option value="">כל הצבעים</option>
           ${colorsPresent.map(c=>`<option value="${c}" ${ui.color===c?'selected':''}>${COLOR_HE[c]||'לא מזוהה'}</option>`).join('')}
         </select>
+        <select class="select" onchange="ui.group=this.value;render()">
+          <option value="">כל הרוטינות והקבוצות</option>
+          <optgroup label="רוטינות">${uniq('tests','בדיקות רוטינה').map(([v,c])=>`<option value="r:${esc(v)}" ${ui.group==='r:'+v?'selected':''}>${esc(v)} (${c})</option>`).join('')}</optgroup>
+          <optgroup label="סוג בדיקה / קבוצה">${uniq('tests','test type').map(([v,c])=>`<option value="t:${esc(v)}" ${ui.group==='t:'+v?'selected':''}>${esc(v)} (${c})</option>`).join('')}</optgroup>
+        </select>
         <label class="check"><input type="checkbox" ${ui.onlyIssues?'checked':''} onchange="ui.onlyIssues=this.checked;render()"> רק עם בעיות</label>
         <label class="check"><input type="checkbox" ${ui.onlyChanged?'checked':''} onchange="ui.onlyChanged=this.checked;render()"> רק ששונו</label>
-        ${(ui.q||ui.kupa||ui.lab||ui.color||ui.onlyIssues||ui.onlyChanged) ? `<button class="btn btn-sm btn-ghost" onclick="clearFilters()">נקה סינון</button>` : ''}
+        ${(ui.q||ui.kupa||ui.lab||ui.color||ui.group||ui.onlyIssues||ui.onlyChanged) ? `<button class="btn btn-sm btn-ghost" onclick="clearFilters()">נקה סינון</button>` : ''}
       </div>
       <div class="table-wrap" id="tableWrap">
         ${rows.length ? `
@@ -788,7 +821,7 @@ function testRowHtml(r){
   const st = rowStatus(r), issues = testIssues(r);
   const c = val('tests',r,'צבע מבחנה'), code = colorCode(c);
   const rule = norm(val('tests',r,'כלל מבחנה'));
-  const routine = norm(val('tests',r,'בדיקות רוטינה')), ttype = norm(val('tests',r,'test type'));
+  const tags = [...splitMulti(val('tests',r,'בדיקות רוטינה')), ...splitMulti(val('tests',r,'test type'))];
   const instr = norm(val('tests',r,'הוראות מיוחדות'));
   return `<tr class="${st?'st-'+st:''}" ondblclick="openEditor('tests',${r.id})">
     <td class="num">${esc(val('tests',r,'סדר הדפסה'))}</td>
@@ -803,7 +836,7 @@ function testRowHtml(r){
     <td>${rule==='per_test'?'נפרדת':rule==='shared'?'משותפת':'<span style="color:var(--muted)">משותפת*</span>'}</td>
     <td class="num">${esc(val('tests',r,'כמות מבחנות'))}</td>
     <td>${esc(val('tests',r,'tube_group'))}</td>
-    <td><div class="sub">${esc([routine, ttype].filter(Boolean).join(' · '))}</div></td>
+    <td><div style="display:flex;flex-wrap:wrap;gap:4px;max-width:260px">${tags.map(t=>`<span class="tagchip sm">${esc(t)}</span>`).join('')}</div></td>
     <td class="actions">
       <button class="btn btn-sm icon-btn" title="עריכה" onclick="openEditor('tests',${r.id})">✎</button>
       <button class="btn btn-sm icon-btn" title="שכפול (למשל לקופה אחרת)" onclick="duplicateRow('tests',${r.id})">⧉</button>
@@ -822,7 +855,7 @@ function sortBy(col){
   if (ui.sort.col === col) ui.sort.dir *= -1; else ui.sort = {col, dir:1};
   render();
 }
-function clearFilters(){ Object.assign(ui, {q:'',kupa:'',lab:'',color:'',onlyIssues:false,onlyChanged:false}); render(); }
+function clearFilters(){ Object.assign(ui, {q:'',kupa:'',lab:'',color:'',group:'',onlyIssues:false,onlyChanged:false}); render(); }
 
 /* ---------- הודעות ---------- */
 function renderMessages(){
@@ -942,12 +975,15 @@ function openEditor(file, id, prefill=null, afterId=null){
 
   let html = '';
   if (file==='tests' && row){ const iss = testIssues(row); if (iss.length) html += `<div class="note warn" style="margin-bottom:12px">⚠ ${iss.map(esc).join('<br>⚠ ')}</div>`; }
+  const order = Object.keys(defs);
+  sections.forEach(list => list.sort((a,b)=>{ const ia=order.indexOf(norm(a[0])), ib=order.indexOf(norm(b[0])); return (ia<0?999:ia)-(ib<0?999:ib); }));
   sections.forEach((list, sec)=>{
     html += `<div class="section-title">${esc(sec)}</div><div class="fgrid">`;
     list.forEach(([h,d])=> html += fieldHtml(file, h, d, data[h] ?? ''));
     html += `</div>`;
   });
   $('edBody').innerHTML = html;
+  $('edBody').querySelectorAll('[data-multi]').forEach(el=>renderMulti(el.dataset.multi));
   openModal('editorModal');
   setTimeout(()=>{ const first = $('edBody').querySelector('input,textarea,select'); first && first.focus(); }, 50);
 }
@@ -965,6 +1001,20 @@ function fieldHtml(file, h, d, v){
     if (norm(v) && !opts.some(o=>o[0]===norm(v))) opts.unshift([v, `${norm(v)} (ערך קיים)`]);
     const cur = opts.some(o=>o[0]===norm(v)) ? norm(v) : v;
     input = `<select ${common} class="select">${d.req?'':`<option value="">${norm(h)==='כלל מבחנה'?'— ריק (נחשב משותפת) —':'— ללא —'}</option>`}${opts.map(o=>`<option value="${esc(o[0])}" ${o[0]===cur?'selected':''}>${esc(o[1])}</option>`).join('')}</select>`;
+  } else if (d.type==='multi'){
+    const vals = uniq(file, norm(h));
+    input = `<div class="stack" data-multi="${id}" data-col="${esc(norm(h))}" style="display:flex;flex-direction:column;gap:8px">
+      <input type="hidden" ${common} value="${esc(joinMulti(splitMulti(v)))}">
+      <div class="multi-chips" id="${id}_chips"></div>
+      <div class="multi-add">
+        <input id="${id}_in" class="input" list="${id}_l" autocomplete="off" placeholder="בחר מהרשימה או הקלד שם חדש ולחץ Enter"
+          onkeydown="if(event.key==='Enter'||event.key===','){event.preventDefault();multiAdd('${id}')}"
+          onchange="if(this.value && [...document.getElementById('${id}_l').options].some(o=>o.value===this.value))multiAdd('${id}')">
+        <button type="button" class="btn" onclick="multiAdd('${id}')">+ הוסף</button>
+      </div>
+      <datalist id="${id}_l">${vals.map(([x,c])=>`<option value="${esc(x)}">${c} בדיקות</option>`).join('')}</datalist>
+      <div class="peek" id="${id}_peek"></div>
+    </div>`;
   } else if (d.type==='list'){
     const vals = uniq(file, norm(h));
     input = `<input ${common} class="input" list="${id}_l" value="${esc(v)}" autocomplete="off"><datalist id="${id}_l">${vals.map(([x,c])=>`<option value="${esc(x)}">${c} שורות</option>`).join('')}</datalist>`;
@@ -1006,9 +1056,69 @@ function fieldHtml(file, h, d, v){
   </div>`;
 }
 
+/* ---------- שדה רב-ערכי + "בדיקות באותה קבוצה" ---------- */
+let peekAllKupot = false;
+function multiValues(id){ return splitMulti($(id).value); }
+function multiAdd(id){
+  const inp = $(id+'_in'); const add = splitMulti(inp.value);
+  if (!add.length) return;
+  const cur = multiValues(id);
+  add.forEach(v=>{ if (!cur.some(c=>c.toLowerCase()===v.toLowerCase())) cur.push(v); });
+  $(id).value = joinMulti(cur); inp.value = '';
+  renderMulti(id); inp.focus();
+}
+function multiRemove(id, i){
+  const cur = multiValues(id); cur.splice(i,1);
+  $(id).value = joinMulti(cur); renderMulti(id);
+}
+function editorValue(name){
+  const h = hdr(editing.file, name); if (!h) return '';
+  const el = [...$('edBody').querySelectorAll('[data-h]')].find(x=>x.dataset.h===h);
+  return el ? el.value : '';
+}
+function renderMulti(id){
+  const vals = multiValues(id);
+  $(id+'_chips').innerHTML = vals.length
+    ? vals.map((v,i)=>`<span class="tagchip">${esc(v)}<button type="button" title="הסר" onclick="multiRemove('${id}',${i})">✕</button></span>`).join('')
+    : `<span class="peek-empty">לא נבחר עדיין</span>`;
+  renderPeek(id);
+}
+function renderPeek(id){
+  const box = $(id+'_peek'); if (!box || !editing) return;
+  const col = box.closest('[data-multi]').dataset.col;
+  const vals = multiValues(id);
+  if (!vals.length){ box.style.display='none'; return; }
+  box.style.display='flex';
+  const kupa = norm(editorValue('קופת חולים'));
+  const groups = vals.map(v=>{
+    const members = files.tests.rows.filter(r=>
+      r.id !== editing.id &&
+      splitMulti(val('tests',r,col)).some(x=>x.toLowerCase()===v.toLowerCase()) &&
+      (peekAllKupot || !kupa || norm(val('tests',r,'קופת חולים'))===kupa));
+    members.sort((a,b)=>{
+      const na=parseFloat(val('tests',a,'סדר הדפסה')), nb=parseFloat(val('tests',b,'סדר הדפסה'));
+      return (isNaN(na)?1e9:na)-(isNaN(nb)?1e9:nb);
+    });
+    return `<div>
+      <div class="peek-group-title">${esc(v)} · ${members.length} בדיקות נוספות${peekAllKupot||!kupa?'':' בקופה '+esc(kupa)}</div>
+      ${members.length ? `<div class="peek-list">${members.map(r=>{
+        const code = colorCode(val('tests',r,'צבע מבחנה'));
+        return `<span class="peek-item"><span class="swatch" style="background:${COLOR_HEX[code]||'#fff'};margin:0"></span>${esc(val('tests',r,'שם בדיקה'))}${peekAllKupot?` <span class="k">${esc(norm(val('tests',r,'קופת חולים')))}</span>`:''}</span>`;
+      }).join('')}</div>` : `<div class="peek-empty">אין עדיין בדיקות נוספות בקבוצה הזו – זו תהיה הראשונה</div>`}
+    </div>`;
+  }).join('');
+  box.innerHTML = `<div class="peek-head">בדיקות באותה קבוצה
+      <span class="spacer"></span>
+      <label class="check" style="font-size:12px"><input type="checkbox" ${peekAllKupot?'checked':''} onchange="peekAllKupot=this.checked;refreshPeeks()"> כל הקופות</label>
+    </div>${groups}`;
+}
+function refreshPeeks(){ $('edBody').querySelectorAll('[data-multi]').forEach(el=>renderPeek(el.dataset.multi)); }
+$('edBody').addEventListener('change', e=>{ if (!e.target.closest('[data-multi]')) refreshPeeks(); });
+
 function saveEditor(){
   if (!editing) return;
   const {file, id, afterId} = editing, f = files[file], defs = FIELD_DEFS[file];
+  $('edBody').querySelectorAll('[data-multi]').forEach(el=>{ if ($(el.dataset.multi+'_in').value.trim()) multiAdd(el.dataset.multi); });
   const data = {};
   f.headers.forEach(h=> data[h] = '');
   $('edBody').querySelectorAll('[data-h]').forEach(el=>{
@@ -1086,6 +1196,7 @@ function fillBulkValues(){
 function bulkTargets(){
   const col = $('b_col').value, from = $('b_from').value;
   const pool = $('b_onlyFiltered').checked ? filteredTests() : files.tests.rows;
+  if (isMulti('tests', col)) return pool.filter(r=> splitMulti(val('tests',r,col)).includes(from));
   return pool.filter(r=> norm(val('tests',r,col)) === from);
 }
 function updateBulkCount(){ $('b_count').textContent = `${bulkTargets().length} שורות יעודכנו.`; }
@@ -1093,7 +1204,13 @@ function applyBulk(){
   const col = $('b_col').value, to = $('b_to').value.trim(), h = hdr('tests', col), rows = bulkTargets();
   if (!rows.length) return;
   if (!to && !confirm('הערך החדש ריק – לרוקן את השדה בכל השורות האלה?')) return;
-  rows.forEach(r=>{ r.data = { ...r.data, [h]: to }; });
+  rows.forEach(r=>{
+    if (isMulti('tests', col)){
+      const from = $('b_from').value;
+      const list = splitMulti(r.data[h]).flatMap(x => x===from ? (to ? [to] : []) : [x]);
+      r.data = { ...r.data, [h]: joinMulti([...new Set(list)]) };
+    } else r.data = { ...r.data, [h]: to };
+  });
   closeModal('bulkModal');
   toast(`${rows.length} שורות עודכנו בטיוטה.`); render();
 }
