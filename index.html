@@ -557,6 +557,19 @@
   .important-message-content { font-size: 13px; line-height: 1.65; }
 }
 
+    /* ===== פס מבחנות נדרשות בטופס המודפס ===== */
+    .tube-strip { margin-top:8px; border:1px solid #cbd5e1; border-radius:14px; padding:5px 10px 6px; background:#fff; break-inside:avoid; page-break-inside:avoid; }
+    .tube-strip-title { font-size:12px; font-weight:900; color:#0f172a; margin-bottom:2px; text-align:right; }
+    .tube-strip-items { display:flex; flex-wrap:wrap; justify-content:center; gap:4px 8px; }
+    .tube-item { display:flex; flex-direction:column; align-items:center; width:56px; }
+    .tube-img { width:42px; height:42px; display:flex; align-items:center; justify-content:center; }
+    .tube-img img { max-width:100%; max-height:100%; object-fit:contain; }
+    .tube-name { margin-top:2px; font-size:12px; font-weight:900; color:#0f172a; line-height:1.15; text-align:center; }
+    .tube-count { font-size:11px; font-weight:800; color:#475569; line-height:1.1; }
+    .css-tube { display:flex; flex-direction:column; align-items:center; }
+    .css-tube-cap { width:20px; height:8px; border-radius:3px 3px 0 0; border:1px solid rgba(0,0,0,.25); }
+    .css-tube-body { width:13px; height:32px; border:1px solid #64748b; border-top:0; border-radius:0 0 7px 7px; background:#f8fafc; }
+
     /* ===== תגיות הוראות מיוחדות (סל בדיקות) ===== */
     .instr-chips { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
     .instr-chip { display:inline-flex; align-items:center; gap:9px; padding:10px 16px; border-radius:14px; border:1.5px solid; font-size:17px; font-weight:800; line-height:1.4; max-width:100%; }
@@ -3650,7 +3663,36 @@ const renderPrintPreview = () => {
     return headerRow + rows;
   };
 
-  const renderSinglePrintPage = ({labForMeta = '', leftRowsHtml = '', rightRowsHtml = '', thirdRowsHtml = '', leftCount = 0, rightCount = 0, thirdCount = 0, rowsPerCol = 18, cols = 2, showLabTitle = false}) => {
+  // ===== פס "מבחנות נדרשות" בתחתית הטופס: תמונה + שם הצבע + כמות =====
+  const buildTubeStrip = (tests) => {
+    const groups = Object.values(aggregateTubes(tests))
+      .sort((a, b) => getColorName(a.color || 'other').localeCompare(getColorName(b.color || 'other'), 'he'));
+    if (!groups.length) return { html: '', count: 0 };
+    const total = groups.reduce((acc, g) => acc + (g.count || 0), 0);
+    const items = groups.map(g => {
+      const code = g.color || 'other';
+      const rep = tests.find(t => (g.tests || []).includes(t.name) && t.image);
+      const hex = TUBE_COLOR_HEX[code] || TUBE_COLOR_HEX.other;
+      const visual = rep
+        ? `<img src="${escapeAttr(rep.image)}" alt="" loading="eager">`
+        : `<span class="css-tube"><span class="css-tube-cap" style="background:${hex}"></span><span class="css-tube-body"></span></span>`;
+      return `<div class="tube-item">
+        <div class="tube-img">${visual}</div>
+        <div class="tube-name">${escapeHtml(getColorName(code))}</div>
+        <div class="tube-count" dir="ltr">×${g.count || 1}</div>
+      </div>`;
+    }).join('');
+    return {
+      html: `<div class="tube-strip"><div class="tube-strip-title">מבחנות נדרשות · סה"כ ${total}</div><div class="tube-strip-items">${items}</div></div>`,
+      count: groups.length
+    };
+  };
+  // כמה שורות ריקות מפנים כדי שהפס ייכנס באותו עמוד (עד 11 מבחנות בשורה אחת)
+  const stripRowsCost = (n) => n === 0 ? 0 : (n > 11 ? 7 : 4);
+  // עמוד A4 מכיל בערך 19 שורות טבלה יחד עם הכותרת והפוטר. אם אין מקום – הפס לא יודפס בעמוד הזה (הטופס נשאר כמו קודם)
+  const PAGE_ROW_CAPACITY = 19;
+
+  const renderSinglePrintPage = ({labForMeta = '', leftRowsHtml = '', rightRowsHtml = '', thirdRowsHtml = '', leftCount = 0, rightCount = 0, thirdCount = 0, rowsPerCol = 18, cols = 2, showLabTitle = false, tubeStrip = ''}) => {
     return `
       <div class="print-page" dir="rtl">
 
@@ -3714,6 +3756,8 @@ const renderPrintPreview = () => {
           ${cols === 3 ? ('<div class="col">' + table(thirdRowsHtml, thirdCount, rowsPerCol) + '</div>') : ''}
         </div>
 
+        ${tubeStrip}
+
         <!-- Footer -->
         <div class="print-footer">
           <div class="footer-top footer-top-simple">
@@ -3767,8 +3811,13 @@ const renderPrintPreview = () => {
       const leftRowsHtml = makeTestRows(leftTests, false, lab);
       const rightRowsHtml = makeTestRows(rightTests, false, lab);
 
-      const MIN_ROWS = 16; // Clalit: leave room for footer on same page
-      const rowsPerCol = Math.min(18, Math.max(MIN_ROWS, Math.max(leftTests.length, rightTests.length)));
+      const needRows = Math.max(leftTests.length, rightTests.length);
+      let strip = buildTubeStrip(tests);
+      const cost = stripRowsCost(strip.count);
+      if (needRows + cost > PAGE_ROW_CAPACITY) strip = { html:'', count:0 }; // אין מקום לפס בעמוד הזה
+      const rowsPerCol = strip.count
+        ? Math.max(16 - cost, needRows) // Clalit: leave room for tube strip + footer on same page
+        : Math.min(18, Math.max(16, needRows));
 
       return renderSinglePrintPage({
         showLabTitle: true,
@@ -3777,7 +3826,8 @@ const renderPrintPreview = () => {
         rightRowsHtml,
         leftCount: leftTests.length,
         rightCount: rightTests.length,
-        rowsPerCol
+        rowsPerCol,
+        tubeStrip: strip.html
       });
     }).join('\n');
 
@@ -3803,20 +3853,32 @@ const renderPrintPreview = () => {
   const extraBlankRows = tripleKupa ? 2 : 0;
 
   const totalRows = groupRows.reduce((acc, g) => acc + (g.rowCount || 0), 0);
-  const cols = totalRows > 36 ? 3 : 2;
 
-  const colGroups = Array.from({ length: cols }, () => []);
-  const colCounts = Array.from({ length: cols }, () => 0);
+  const distribute = (nCols) => {
+    const cg = Array.from({ length: nCols }, () => []);
+    const cc = Array.from({ length: nCols }, () => 0);
+    groupRows.forEach(gr => {
+      // greedy: put the whole lab-group in the currently shortest column
+      let idx = 0;
+      for (let i = 1; i < nCols; i++) {
+        if (cc[i] < cc[idx]) idx = i;
+      }
+      cg[idx].push(gr);
+      cc[idx] += gr.rowCount;
+    });
+    return { cg, cc };
+  };
 
-  groupRows.forEach(gr => {
-    // greedy: put the whole lab-group in the currently shortest column
-    let idx = 0;
-    for (let i = 1; i < cols; i++) {
-      if (colCounts[i] < colCounts[idx]) idx = i;
-    }
-    colGroups[idx].push(gr);
-    colCounts[idx] += gr.rowCount;
-  });
+  let strip = buildTubeStrip(selectedAll);
+  const cost = stripRowsCost(strip.count);
+  let cols = totalRows > 36 ? 3 : 2;
+  let { cg: colGroups, cc: colCounts } = distribute(cols);
+  if (strip.count && Math.max(...colCounts) + cost > PAGE_ROW_CAPACITY && cols === 2) {
+    // מנסים 3 עמודות כדי לפנות מקום לפס המבחנות
+    const tryThree = distribute(3);
+    if (Math.max(...tryThree.cc) + cost <= PAGE_ROW_CAPACITY) { cols = 3; colGroups = tryThree.cg; colCounts = tryThree.cc; }
+  }
+  if (strip.count && Math.max(...colCounts) + cost > PAGE_ROW_CAPACITY) strip = { html:'', count:0 }; // אין מקום – בלי פס
 
   const leftRowsHtml = colGroups[0].map(g => g.rowsHtml).join('');
   const rightRowsHtml = (cols >= 2 ? colGroups[1].map(g => g.rowsHtml).join('') : '');
@@ -3826,8 +3888,9 @@ const renderPrintPreview = () => {
   const rightCount = colCounts[1] || 0;
   const thirdCount = cols === 3 ? (colCounts[2] || 0) : 0;
 
-  const MIN_ROWS = 16; // keep room for footer on same page
-  const rowsPerCol = Math.max(MIN_ROWS, ...colCounts) + extraBlankRows;
+  const rowsPerCol = strip.count
+    ? Math.max(16 - cost, ...colCounts) // keep room for tube strip + footer on same page
+    : Math.max(16, ...colCounts) + extraBlankRows;
 
   return renderSinglePrintPage({
     labForMeta: '',
@@ -3838,7 +3901,8 @@ const renderPrintPreview = () => {
     rightCount,
     thirdCount,
     rowsPerCol,
-    cols
+    cols,
+    tubeStrip: strip.html
   });
 };
 
