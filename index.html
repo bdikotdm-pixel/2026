@@ -3758,20 +3758,12 @@ const renderPrintPreview = () => {
               <div class="val">${escapeHtml(state.selectedKupa || '')}</div>
             </div>
             <div class="meta-item">
-              <div class="lbl">מעבדה</div>
-              <div class="val">${escapeHtml(labForMeta || '')}</div>
-            </div>
-            <div class="meta-item">
               <div class="lbl">תאריך</div>
               <div class="val date-val" title="לחץ לבחירת תאריך">
                 <input type="date" class="date-input no-print" value="${formDateISO}" min="${todayISO}"
                   onclick="try{this.showPicker()}catch(e){}" onchange="setFormDate(this.value)">
                 <span class="print-only-date">${escapeHtml(formDateStr)}</span>
               </div>
-            </div>
-            <div class="meta-item">
-              <div class="lbl">שעה</div>
-              <div class="val">${escapeHtml(timeStr)}</div>
             </div>
           </div>
         </div>
