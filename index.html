@@ -564,6 +564,18 @@
     .print-only-date { display:none; }
     @media print { .print-only-date { display:inline; } .date-val { background:#fff !important; box-shadow:none !important; } }
 
+    /* ===== חלק תחתון: מסגרת אחת (חתימה | מבחנות) + טלפונים בשורה אחת ===== */
+    .print-page .sign-tubes-row { border:1px solid #94a3b8; border-radius:12px; gap:0; background:#fff; overflow:hidden; }
+    .print-page .sign-tubes-row .sign-box-print { border:0; border-left:1px solid #94a3b8; border-radius:0; flex-basis:28%; padding:7px 12px 12px; }
+    .print-page .sign-tubes-row .tube-strip { border:0; border-radius:0; padding:7px 12px 8px; }
+    .print-page .sign-tubes-row.no-tubes .sign-box-print { border-left:0; flex-basis:100%; justify-content:flex-start; }
+    .print-page .sign-tubes-row.no-tubes .sign-line-print { flex:0 0 40%; }
+    .print-page .footer-card { background:#f1f5f9 !important; border:0 !important; border-radius:10px !important; padding:6px 12px !important; margin-top:6px !important; text-align:center; }
+    .phones-line { font-size:10.5px; font-weight:700; color:#334155; display:flex; flex-wrap:wrap; justify-content:center; align-items:baseline; gap:2px 6px; line-height:1.5; letter-spacing:-.01em; }
+    .phones-line b { color:#0f172a; font-weight:900; }
+    .phones-line .sep { color:#94a3b8; }
+    .phones-line bdi { direction:ltr; unicode-bidi:isolate; }
+
     /* ===== רווח בין אזור המדבקה לטבלאות הבדיקות ===== */
     .print-page .meta-grid { margin-bottom:16px; }
 
@@ -3794,10 +3806,11 @@ const renderPrintPreview = () => {
         <div class="print-footer">
 
           <div class="footer-card">
-            <div class="footer-card-title">טלפונים של המרכז הירושלמי לבריאות הנפש:</div>
-            <div class="footer-card-lines">
-              <div>כפר שאול – טל: 02-6551510 | פקס: 02-6551400 | נייד: 0506261768</div>
-              <div>איתנים – טל: 02-5705152 | פקס: 02-5705100 | נייד: 0506253774</div>
+            <div class="phones-line">
+              <b>טלפונים:</b>
+              <span>כפר שאול <bdi>02-6551510</bdi> · פקס <bdi>02-6551400</bdi> · נייד <bdi>050-6261768</bdi></span>
+              <span class="sep">|</span>
+              <span>איתנים <bdi>02-5705152</bdi> · פקס <bdi>02-5705100</bdi> · נייד <bdi>050-6253774</bdi></span>
             </div>
           </div>
         </div>
