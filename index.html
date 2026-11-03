@@ -1865,6 +1865,7 @@ window.setCatalogViewMode = (mode) => {
     const CSV_DATA_PATH = 'data/tests.csv';
     const CSV_MESSAGES_PATH = 'data/messages.csv';
     const CSV_FINAL_SLIDE_PATH = 'data/final-slide.csv';
+    const CSV_GROUP_COLORS_PATH = 'data/group-colors.csv'; // צבעי כפתורי רוטינה / סוג בדיקה – נערך מעמוד הניהול
 
     // הופך שורות CSV גולמיות (מערך מערכים) למערך אובייקטים לפי שמות העמודות בשורה הראשונה -
     // אותה צורה בדיוק שמצפים לה pickImportantMessage / pickFinalSlideRecord
@@ -1903,6 +1904,48 @@ window.setCatalogViewMode = (mode) => {
         }
       } catch (e) { /* אופציונלי - מתעלמים משגיאה */ }
       state.meta.finalSlideStatus = state.meta.finalSlide ? 'ready' : 'empty';
+
+      try {
+        const url = bustCache ? `${CSV_GROUP_COLORS_PATH}?t=${Date.now()}` : CSV_GROUP_COLORS_PATH;
+        const res = await fetch(url, { cache: bustCache ? 'no-store' : 'default' });
+        if (res.ok) {
+          const objs = csvRowsToObjects(parseCSV(stripBOM(await res.text())));
+          const map = { r: {}, t: {} };
+          objs.forEach(o => {
+            const kind = norm(o['סוג']), name = norm(o['שם']), color = norm(o['צבע']);
+            if (!name || !/^#[0-9a-f]{6}$/i.test(color)) return;
+            if (kind === 'רוטינה') map.r[name] = color;
+            else if (kind === 'סוג בדיקה') map.t[name] = color;
+          });
+          state.meta.groupColors = map;
+        }
+      } catch (e) { /* אופציונלי - בלי צבעים פשוט נשאר העיצוב הרגיל */ }
+    };
+
+    // ===== כפתורי רוטינה / סוג בדיקה בצבע שנבחר בעמוד הניהול =====
+    const getGroupColor = (kind, name) => {
+      const m = state.meta && state.meta.groupColors && state.meta.groupColors[kind];
+      return (m && m[norm(name)]) || '';
+    };
+    const filterChipHtml = (kind, opt, active, onclickJs) => {
+      const c = getGroupColor(kind, opt);
+      if (!c) {
+        return `<button onclick="${onclickJs}"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border transition-all ${
+              active ? 'bg-primary text-white border-primary shadow-md shadow-primary/20'
+                     : 'bg-white text-slate-600 border-slate-200 hover:border-primary/30 hover:bg-primary/5'}">
+            <span class="w-2 h-2 rounded-full ${active ? 'bg-white' : 'bg-slate-300'}"></span>
+            ${escapeHtml(opt)}
+          </button>`;
+      }
+      const style = active
+        ? `background:${c};border-color:${c};color:#fff;box-shadow:0 6px 14px -6px ${c}`
+        : `background:${c}0F;border-color:${c}66;color:${c}`;
+      return `<button onclick="${onclickJs}" style="${style}"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border transition-all hover:shadow-md">
+            <span class="w-2.5 h-2.5 rounded-full" style="background:${active ? '#fff' : c}"></span>
+            ${escapeHtml(opt)}
+          </button>`;
     };
 
     const loadFromCSVFile = async ({ bustCache = false } = {}) => {
@@ -3197,34 +3240,14 @@ const renderUnifiedStep1to3 = () => {
           <div class="text-[11px] font-black text-slate-400 tracking-wide mb-2 text-right">רוטינה</div>
           <div class="flex flex-wrap items-center gap-2 justify-start pb-1">
             <!-- Routine group -->
-${routineOptions.map(opt => `
-          <button onclick="setRoutineFilter('${escapeQuotes(opt)}')"
-            class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border transition-all ${
-              norm(state.routineFilter) === norm(opt)
-                ? 'bg-primary text-white border-primary shadow-md shadow-primary/20'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-primary/30 hover:bg-primary/5'
-            }">
-            <span class="w-2 h-2 rounded-full ${norm(state.routineFilter) === norm(opt) ? 'bg-white' : 'bg-slate-300'}"></span>
-            ${escapeHtml(opt)}
-          </button>
-        `).join('')}
+${routineOptions.map(opt => filterChipHtml('r', opt, norm(state.routineFilter) === norm(opt), `setRoutineFilter('${escapeQuotes(opt)}')`)).join('')}
           </div>
 
           <div class="h-px bg-slate-200/70 my-3"></div>
           <div class="text-[11px] font-black text-slate-400 tracking-wide mb-2 text-right">סוג בדיקה</div>
           <div class="flex flex-wrap items-center gap-2 justify-end pb-1">
             <!-- Type group -->
-${typeOptions.map(opt => `
-          <button onclick="setTypeFilter('${escapeQuotes(opt)}')"
-            class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border transition-all ${
-              norm(state.typeFilter) === norm(opt)
-                ? 'bg-primary text-white border-primary shadow-md shadow-primary/20'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-primary/30 hover:bg-primary/5'
-            }">
-            <span class="w-2 h-2 rounded-full ${norm(state.typeFilter) === norm(opt) ? 'bg-white' : 'bg-slate-300'}"></span>
-            ${escapeHtml(opt)}
-          </button>
-        `).join('')}
+${typeOptions.map(opt => filterChipHtml('t', opt, norm(state.typeFilter) === norm(opt), `setTypeFilter('${escapeQuotes(opt)}')`)).join('')}
           </div>
 
         </div>

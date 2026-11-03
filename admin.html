@@ -378,9 +378,10 @@ const COLOR_MAP = {lavender:'lavender',purple:'lavender',violet:'lavender',lilac
 const DEFAULT_HEADERS = {
   tests: ['שם בדיקה','קופת חולים','קוד בדיקה','test type','תמונה בגט הב','בדיקות רוטינה','תיאור','הוראות מיוחדות','סוג המבחנה','צבע מבחנה','מעבדה','כלל מבחנה','כמות מבחנות','tube_group','סדר הדפסה'],
   messages: ['נושא הודעה','תוכן הודעה','לפרסום?'],
-  final: ['כותרת','שם קובץ תמונה','תאריך','פעיל']
+  final: ['כותרת','שם קובץ תמונה','תאריך','פעיל'],
+  colors: ['סוג','שם','צבע']
 };
-const FILE_LABELS = { tests:'בדיקות', messages:'הודעות חשובות', final:'מסך סיום' };
+const FILE_LABELS = { tests:'בדיקות', messages:'הודעות חשובות', final:'מסך סיום', colors:'צבעי רוטינות' };
 
 // הגדרת שדות הטופס לכל עמודה (עמודות לא מוכרות יוצגו כ"שדות נוספים")
 const FIELD_DEFS = {
@@ -420,12 +421,13 @@ const FIELD_DEFS = {
 const CFG_KEY = 'labtests_admin_cfg_v1';
 let cfg = {
   owner:'bdikotdm-pixel', repo:'2026', branch:'main', token:'', imagesDir:'images',
-  paths:{ tests:'data/tests.csv', messages:'data/messages.csv', final:'data/final-slide.csv' }
+  paths:{ tests:'data/tests.csv', messages:'data/messages.csv', final:'data/final-slide.csv', colors:'data/group-colors.csv' }
 };
 const files = {
   tests:   { headers:[], rows:[], deleted:0, sha:null, source:'', loaded:false },
   messages:{ headers:[], rows:[], deleted:0, sha:null, source:'', loaded:false },
-  final:   { headers:[], rows:[], deleted:0, sha:null, source:'', loaded:false }
+  final:   { headers:[], rows:[], deleted:0, sha:null, source:'', loaded:false },
+  colors:  { headers:[], rows:[], deleted:0, sha:null, source:'', loaded:false }  // צבעי כפתורי רוטינה / סוג בדיקה
 };
 let ui = { tab:'tests', loading:true, q:'', kupa:'', lab:'', color:'', group:'', onlyIssues:false, onlyChanged:false, sort:{col:'סדר הדפסה', dir:1} };
 let imageList = [];
@@ -525,6 +527,7 @@ function detectFileKey(headers){
   const H = headers.map(norm);
   if (H.includes('שם בדיקה')) return 'tests';
   if (H.includes('נושא הודעה') || H.includes('תוכן הודעה')) return 'messages';
+  if (H.includes('צבע') && H.includes('שם') && H.includes('סוג')) return 'colors';
   if (H.includes('שם קובץ תמונה') || (H.includes('כותרת') && H.includes('פעיל'))) return 'final';
   return null;
 }
@@ -603,6 +606,7 @@ async function loadAll(){
       loadIntoFile(key, await res.text(), 'האתר (קריאה בלבד)');
     } catch(e){ /* יטופל במסך בחירת קבצים */ }
   }
+  if (!files.colors.loaded) loadIntoFile('colors', '', 'חדש'); // הקובץ נוצר בשמירה הראשונה
   ui.loading = false;
   errors.forEach(m => toast(m, 'err'));
   refreshImages();
@@ -672,7 +676,7 @@ function downloadCSV(key){
   a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
 }
 async function reloadFile(key){
-  if (fileStats(key).dirty && !confirm('לבטל את כל השינויים שלא נשמרו ולטעון מחדש?')) return;
+  if (Object.keys(files).some(k=>files[k].loaded && fileStats(k).dirty) && !confirm('לבטל את כל השינויים שלא נשמרו ולטעון מחדש?')) return;
   await loadAll();
 }
 
@@ -681,6 +685,16 @@ async function reloadFile(key){
    ============================================================ */
 function switchTab(t){ ui.tab = t; render(); }
 const fileOf = t => t==='groups' ? 'tests' : t;
+const keysOf = t => t==='groups' ? ['tests','colors'] : [t];
+function tabStats(t){
+  const st = {add:0, edit:0, del:0, dirty:false};
+  keysOf(t).forEach(k=>{ if (!files[k].loaded) return; const x = fileStats(k); st.add+=x.add; st.edit+=x.edit; st.del+=x.del; st.dirty = st.dirty || x.dirty; });
+  return st;
+}
+async function saveTab(t){
+  const dirty = keysOf(t).filter(k=>files[k].loaded && fileStats(k).dirty);
+  for (const k of dirty) await saveToGitHub(k);
+}
 
 function render(){
   // שומרים פוקוס, מיקום סמן וגלילה של רשימות, כדי שרינדור מחדש לא "יקפיץ" את המסך
@@ -694,7 +708,7 @@ function render(){
 function renderInner(){
   document.querySelectorAll('.tab').forEach(b=>{
     const k=b.dataset.tab; b.classList.toggle('active', k===ui.tab);
-    b.classList.toggle('has-dirty', fileStats(fileOf(k)).dirty);
+    b.classList.toggle('has-dirty', tabStats(k).dirty);
     $('cnt-'+k).textContent = k==='groups' ? (gList('r').length + gList('t').length + gList('g').length) : files[k].rows.length;
   });
   const pill = $('connPill');
@@ -732,7 +746,7 @@ function renderInner(){
 function startEmpty(key){ loadIntoFile(key, '', 'חדש'); render(); }
 
 function renderSaveBar(){
-  const key = fileOf(ui.tab), s = fileStats(key), f = files[key], bar = $('saveBar');
+  const key = fileOf(ui.tab), s = tabStats(ui.tab), f = files[key], bar = $('saveBar');
   bar.style.display = 'flex';
   bar.className = 'savebar' + (s.dirty ? ' dirty' : '');
   bar.innerHTML = `
@@ -747,7 +761,7 @@ function renderSaveBar(){
     <button class="btn btn-sm" onclick="pickLocalCSV()" title="טעינת קובץ CSV מהמחשב">טען CSV</button>
     <button class="btn btn-sm" onclick="downloadCSV('${key}')">הורד CSV</button>
     ${s.dirty ? `<button class="btn btn-sm" onclick="reloadFile('${key}')">בטל שינויים</button>` : ''}
-    <button id="btnSave" class="btn btn-primary" onclick="saveToGitHub('${key}')" ${s.dirty ? '' : 'disabled'} title="Ctrl+S">
+    <button id="btnSave" class="btn btn-primary" onclick="saveTab(ui.tab)" ${s.dirty ? '' : 'disabled'} title="Ctrl+S">
       <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
       שמור ב-GitHub
     </button>`;
@@ -982,6 +996,58 @@ function guessKupa(name, members){
   return KUPOT.find(k=>name.includes(k)) || (cnt.size===1 ? [...cnt.keys()][0] : '');
 }
 
+/* ---------- צבע כפתור לרוטינה / סוג בדיקה (נשמר ב-data/group-colors.csv) ---------- */
+const COLOR_KIND_LABEL = { r:'רוטינה', t:'סוג בדיקה' };
+const BTN_PALETTE = ['#155E8A','#2563eb','#4f46e5','#7c3aed','#c026d3','#db2777','#dc2626','#ea580c','#b45309','#16a34a','#0d9488','#0891b2','#475569','#0f172a'];
+function colorRow(kind, name){
+  const lbl = COLOR_KIND_LABEL[kind]; if (!lbl || !files.colors.loaded) return null;
+  return files.colors.rows.find(r=>norm(val('colors',r,'סוג'))===lbl && norm(val('colors',r,'שם'))===name) || null;
+}
+function getGColor(kind, name){ const r = colorRow(kind, name); const c = r ? norm(val('colors',r,'צבע')) : ''; return /^#[0-9a-f]{6}$/i.test(c) ? c : ''; }
+function setGColor(kind, name, hex){
+  const lbl = COLOR_KIND_LABEL[kind]; if (!lbl) return;
+  const f = files.colors; let r = colorRow(kind, name);
+  if (!hex){
+    if (r){ const i = f.rows.indexOf(r); if (r.orig) f.deleted++; f.rows.splice(i,1); }
+  } else if (r){
+    gSetColorCell(r, 'צבע', hex.toLowerCase());
+  } else {
+    const data = {}; f.headers.forEach(h=>data[h]='');
+    data[hdr('colors','סוג')] = lbl; data[hdr('colors','שם')] = name; data[hdr('colors','צבע')] = hex.toLowerCase();
+    f.rows.push({ id: nextId++, data, orig:null });
+  }
+  render();
+}
+function gSetColorCell(r, col, v){ const h = hdr('colors', col); if (h) r.data = { ...r.data, [h]: v }; }
+function renameGColor(kind, oldName, newName){
+  const r = colorRow(kind, oldName); if (!r) return;
+  if (colorRow(kind, newName)){ setGColor(kind, oldName, ''); return; } // לקבוצה המאוחדת כבר יש צבע
+  gSetColorCell(r, 'שם', newName);
+}
+function chipPreview(name, c, active){
+  if (!c) c = '#155E8A';
+  const st = active ? `background:${c};border-color:${c};color:#fff` : `background:${c}0F;border-color:${c}66;color:${c}`;
+  return `<span style="display:inline-flex;align-items:center;gap:7px;border:1px solid;border-radius:999px;padding:6px 14px;font-weight:800;font-size:13px;${st}"><span style="width:9px;height:9px;border-radius:50%;background:${active?'#fff':c}"></span>${esc(name)}</span>`;
+}
+function colorPickerHtml(kind, name){
+  const cur = getGColor(kind, name);
+  return `<div style="display:flex;flex-direction:column;gap:8px;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:10px 12px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:12px;font-weight:800;color:#334155">צבע הכפתור במערכת:</span>
+      ${chipPreview(name, cur, true)} ${chipPreview(name, cur, false)}
+      ${cur ? '' : '<span style="font-size:11px;color:var(--muted);font-weight:700">(ברירת מחדל)</span>'}
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      ${BTN_PALETTE.map(c=>`<button type="button" title="${c}" onclick="setGColor('${kind}', gSelName(), '${c}')" style="width:24px;height:24px;border-radius:50%;background:${c};border:${cur===c?'3px solid #fff;box-shadow:0 0 0 2px '+c:'1px solid rgba(0,0,0,.15)'};padding:0"></button>`).join('')}
+      <label title="צבע אחר" style="position:relative;width:24px;height:24px;border-radius:50%;border:1px dashed #94a3b8;display:inline-flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;overflow:hidden">+
+        <input type="color" value="${cur||'#155e8a'}" onchange="setGColor('${kind}', gSelName(), this.value)" style="position:absolute;inset:0;opacity:0;cursor:pointer">
+      </label>
+      ${cur ? `<button type="button" class="btn btn-sm btn-ghost" onclick="setGColor('${kind}', gSelName(), '')">איפוס</button>` : ''}
+    </div>
+  </div>`;
+}
+const gSelName = () => ui.gSel;
+
 function setGKind(k){ ui.gKind = k; ui.gSel = ''; ui.gChecked.clear(); render(); }
 function selectGroupIdx(i){
   const name = gListCache[i]; if (name == null) return;
@@ -1020,7 +1086,7 @@ function renderGroups(){
         </div>
       </div>
       <div class="scroll" id="gListBox" data-ks style="padding:6px">
-        ${list.length ? list.map(([n,c],i)=>`<button class="gitem ${n===ui.gSel?'on':''} ${c===0?'zero':''}" onclick="selectGroupIdx(${i})"><span>${esc(n)}</span><span class="n">${c}</span></button>`).join('')
+        ${list.length ? list.map(([n,c],i)=>`<button class="gitem ${n===ui.gSel?'on':''} ${c===0?'zero':''}" onclick="selectGroupIdx(${i})">${getGColor(kind,n)?`<span style="width:10px;height:10px;border-radius:50%;flex:none;background:${getGColor(kind,n)}"></span>`:''}<span>${esc(n)}</span><span class="n">${c}</span></button>`).join('')
           : `<div class="empty" style="padding:30px 10px">${full.length?'לא נמצא':'אין עדיין '+K.label}</div>`}
       </div>
     </section>`;
@@ -1047,6 +1113,7 @@ function renderGroups(){
     <section class="card gcol">
       <div class="ghead">
         <h2>${esc(ui.gSel)} <span class="chip">${members.length} בדיקות</span></h2>
+        ${COLOR_KIND_LABEL[kind] ? colorPickerHtml(kind, ui.gSel) : ''}
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn btn-sm" onclick="renameGroup()">✎ שינוי שם</button>
           <button class="btn btn-sm" onclick="openNewGroup(true)">⧉ שכפול לקבוצה חדשה</button>
@@ -1150,6 +1217,7 @@ function renameGroup(){
   const exists = gList(kind).some(([n])=>n===nn);
   if (exists && !confirm(`כבר קיימת קבוצה בשם "${nn}". לאחד את שתי הקבוצות?`)) return;
   gMembers(kind, old).forEach(r=>{ gRemove(kind, r, old); gAdd(kind, r, nn); });
+  renameGColor(kind, old, nn);
   ui.gPending[kind] = ui.gPending[kind].filter(n=>n!==old);
   if (!gMembers(kind, nn).length) ui.gPending[kind].push(nn);
   ui.gSel = nn; toast('השם שונה בכל הבדיקות.'); render();
@@ -1158,6 +1226,7 @@ function deleteGroup(){
   const kind = ui.gKind, name = ui.gSel, members = gMembers(kind, name);
   if (!confirm(`למחוק את "${name}"?\n${members.length ? `הקבוצה תוסר מ-${members.length} בדיקות. הבדיקות עצמן לא יימחקו.` : ''}`)) return;
   members.forEach(r=>gRemove(kind, r, name));
+  if (getGColor(kind, name)) setGColor(kind, name, '');
   ui.gPending[kind] = ui.gPending[kind].filter(n=>n!==name);
   ui.gSel = ''; toast('הקבוצה נמחקה.'); render();
 }
@@ -1195,6 +1264,8 @@ function createGroup(){
   }
   rows.forEach(r=>gAdd(kind, r, name));
   if (!rows.length && !ui.gPending[kind].includes(name)) ui.gPending[kind].push(name);
+  const src = $('gm_src').value;
+  if (src && src[1]===':' && src[0]===kind && !getGColor(kind, name) && getGColor(kind, src.slice(2))) setGColor(kind, name, getGColor(kind, src.slice(2)));
   closeModal('groupModal');
   ui.gKind = kind; ui.gSel = name; ui.gChecked.clear(); ui.gq=''; ui.gSrc=''; ui.gMemKupa='';
   ui.gKupa = guessKupa(name, gMembers(kind, name));
@@ -1611,7 +1682,7 @@ function openSettings(){
 function readSettings(){
   cfg.owner = $('s_owner').value.trim(); cfg.repo = $('s_repo').value.trim(); cfg.branch = $('s_branch').value.trim() || 'main';
   cfg.imagesDir = $('s_images').value.trim().replace(/^\/|\/$/g,'') || 'images'; cfg.token = $('s_token').value.trim();
-  cfg.paths = { tests:$('s_p_tests').value.trim()||'data/tests.csv', messages:$('s_p_messages').value.trim()||'data/messages.csv', final:$('s_p_final').value.trim()||'data/final-slide.csv' };
+  cfg.paths = { tests:$('s_p_tests').value.trim()||'data/tests.csv', messages:$('s_p_messages').value.trim()||'data/messages.csv', final:$('s_p_final').value.trim()||'data/final-slide.csv', colors:cfg.paths.colors||'data/group-colors.csv' };
 }
 async function testConnection(){
   readSettings();
@@ -1647,7 +1718,7 @@ document.addEventListener('keydown', e=>{
   if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){
     e.preventDefault();
     if ($('editorModal').classList.contains('open')) saveEditor();
-    else if (fileStats(fileOf(ui.tab)).dirty) saveToGitHub(fileOf(ui.tab));
+    else if (tabStats(ui.tab).dirty) saveTab(ui.tab);
   }
   if ((e.ctrlKey||e.metaKey) && e.key==='Enter' && $('editorModal').classList.contains('open')){ e.preventDefault(); saveEditor(); }
 });
