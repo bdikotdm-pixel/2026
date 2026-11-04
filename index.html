@@ -589,6 +589,59 @@
     .order-qr svg { width:72px; height:72px; display:block; }
     .order-qr span { font-size:9.5px; font-weight:800; color:#475569; white-space:nowrap; }
 
+    /* ===== צפייה בהזמנה – עיצוב ===== */
+    #orderViewModal .ox-modal { max-width:min(760px, calc(100vw - 24px)); }
+    #orderViewModal .ox-head { padding:12px 16px; }
+    #orderViewModal .ox-head h3 { font-size:16px; }
+    .ov-hero { background:linear-gradient(135deg,#155E8A,#0f4f76); color:#fff; border-radius:22px; padding:16px 18px; }
+    .ov-hero-top { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+    .ov-hero-label { font-size:12px; font-weight:800; opacity:.75; }
+    .ov-hero-no { font-size:30px; font-weight:900; letter-spacing:.02em; line-height:1.15; }
+    .ov-kupa { background:#fff; color:#155E8A; border-radius:999px; padding:5px 14px; font-weight:900; font-size:15px; }
+    .ov-facts { display:grid; grid-template-columns:repeat(auto-fit,minmax(90px,1fr)); gap:8px; margin-top:14px; }
+    .ov-facts div { background:rgba(255,255,255,.12); border-radius:14px; padding:8px 10px; }
+    .ov-facts span { display:block; font-size:11px; font-weight:800; opacity:.75; }
+    .ov-facts b { font-size:16px; font-weight:900; }
+    .ov-alert { margin-top:12px; border:1.5px solid #fcd34d; background:#fffbeb; border-radius:18px; padding:10px 12px; }
+    .ov-alert-title { font-size:13px; font-weight:900; color:#92400e; margin-bottom:6px; }
+    .ov-alert-chips { display:flex; flex-wrap:wrap; gap:6px; }
+    .ov-alert .instr-chip { font-size:14px; padding:6px 12px; }
+    .ov-alert .instr-ic { font-size:17px; }
+    .ov-warn { margin-top:10px; padding:10px 12px; border-radius:14px; background:#fef2f2; border:1px solid #fecaca; color:#991b1b; font-weight:800; font-size:13px; }
+    .ov-section-title { margin:16px 2px 8px; font-size:15px; font-weight:900; color:#0f172a; display:flex; align-items:center; gap:8px; }
+    .ov-section-title span { background:#0f172a; color:#fff; border-radius:999px; font-size:12px; padding:1px 9px; }
+    .ov-mini { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+    .ov-mini-item { display:inline-flex; align-items:center; gap:4px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:4px 8px; }
+    .ov-mini-item .css-tube-cap { width:14px; height:6px; } .ov-mini-item .css-tube-body { width:9px; height:18px; }
+    .ov-mini-item b { font-size:12px; font-weight:900; color:#334155; }
+    .ov-tubes { display:flex; flex-direction:column; gap:10px; }
+    .ov-tube { border:1px solid #e2e8f0; border-radius:20px; padding:12px; background:#fff; box-shadow:inset -5px 0 0 var(--tc); }
+    .ov-tube-head { display:flex; align-items:center; gap:12px; }
+    .ov-tube-img { width:76px; height:76px; flex:none; border-radius:16px; background:#f8fafc; border:1px solid #e2e8f0; display:flex; align-items:center; justify-content:center; overflow:hidden; padding:4px; cursor:zoom-in; }
+    .ov-tube-img img { width:100%; height:100%; object-fit:contain; }
+    .ov-tube-title { flex:1; min-width:0; }
+    .ov-tube-name { font-size:18px; font-weight:900; color:#0f172a; display:flex; align-items:center; gap:7px; }
+    .ov-dot { width:12px; height:12px; border-radius:50%; background:var(--tc); border:1px solid rgba(0,0,0,.2); flex:none; }
+    .ov-tube-type { font-size:12px; color:#475569; font-weight:700; margin-top:2px; direction:ltr; text-align:right; }
+    .ov-tube-lab { font-size:12px; color:#94a3b8; font-weight:800; margin-top:1px; }
+    .ov-count { flex:none; text-align:center; background:#f1f5f9; border-radius:14px; padding:6px 10px; min-width:58px; }
+    .ov-count b { display:block; font-size:24px; font-weight:900; line-height:1; color:#0f172a; }
+    .ov-count span { font-size:10px; font-weight:800; color:#64748b; }
+    .ov-tests { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+    .ov-test { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:4px 10px; font-size:14px; font-weight:800; color:#1e293b; }
+    .ov-test i { font-style:normal; color:#b45309; margin-inline-start:4px; font-size:12px; }
+    .ov-instr { margin-top:10px; }
+    .ov-instr .instr-chip { font-size:15px; padding:8px 12px; }
+    .ov-actions { position:sticky; bottom:-20px; display:flex; gap:8px; margin:14px -20px -20px; padding:12px 20px 16px; background:linear-gradient(to top,#fff 75%,rgba(255,255,255,0)); }
+    .ov-actions .ox-primary { flex:1; }
+    @media (max-width:640px){
+      #orderViewModal { padding:0; }
+      #orderViewModal .ox-modal { max-width:100vw; min-height:100vh; border-radius:0; }
+      .ov-hero-no { font-size:26px; }
+      .ov-tube-img { width:64px; height:64px; }
+    }
+    .image-lightbox-backdrop { z-index:260 !important; }
+
     /* ===== תאריך שניתן לשינוי בטופס ===== */
     .date-val { position:relative; cursor:pointer; }
     .date-input { width:100%; border:0; background:transparent; font:inherit; font-weight:900; color:#0f172a; cursor:pointer; padding:0; outline:none; }
@@ -759,7 +812,7 @@ button{
   <div id="orderViewModal" class="ox-backdrop no-print" onmousedown="if(event.target===this)closeOrderView()">
     <div class="ox-modal" role="dialog" aria-modal="true" dir="rtl">
       <div class="ox-head">
-        <div><h3>צפייה בהזמנה</h3><p>הפרטים נקראו מקוד ה-QR שעל הטופס המודפס</p></div>
+        <div><h3>צפייה בהזמנה</h3><p>נקרא מקוד ה-QR שעל הטופס</p></div>
         <button class="ox-x" onclick="closeOrderView()" aria-label="סגירה">✕</button>
       </div>
       <div class="ox-body" id="ov_body"></div>
@@ -2477,41 +2530,77 @@ if (!state.selectedCampus || !state.selectedDept || !state.selectedKupa) {
     let viewedOrder = null;
     const renderOrderView = (o) => {
       const fmtDate = o.formDate ? new Date(o.formDate + 'T00:00:00').toLocaleDateString('he-IL') : '';
-      const groups = Object.values(aggregateTubes(o.tests)).sort((a, b) => getColorName(a.color || 'other').localeCompare(getColorName(b.color || 'other'), 'he'));
+      const groups = Object.values(aggregateTubes(o.tests))
+        .sort((a, b) => getColorName(a.color || 'other').localeCompare(getColorName(b.color || 'other'), 'he'));
       const total = groups.reduce((a, g) => a + (g.count || 1), 0);
       const byName = new Map(o.tests.map(t => [t.name, t]));
       const hex = c => TUBE_COLOR_HEX[c || 'other'] || TUBE_COLOR_HEX.other;
+
+      // סיכום הנחיות לכל ההזמנה (צום, קירור, שליחה...) – מוצג למעלה כדי שלא יפספסו
+      const allInstr = [...new Set(o.tests.map(t => norm(t.instructions)).filter(Boolean))];
+      const TYPE_LABEL = { fast:'צום', cold:'קירור', light:'הגנה מאור', warm:'חום גוף', time:'זמן / דחוף', drug:'לפני מנת תרופה', send:'שליחה למעבדה אחרת', warn:'הוראה מיוחדת' };
+      const types = [...new Map(allInstr.map(x => classifyInstruction(x)).map(t => [t.cls, t])).values()];
+
+      const tubeCard = (g) => {
+        const names = g.tests || [];
+        const tests = names.map(n => byName.get(n)).filter(Boolean);
+        const img = (tests.find(t => t.image) || {}).image || '';
+        const label = getColorName(g.color || 'other');
+        const labs = [...new Set(tests.map(t => norm(t.lab)).filter(Boolean))];
+        const byInstr = new Map();
+        tests.filter(t => norm(t.instructions)).forEach(t => { const k = norm(t.instructions); byInstr.set(k, [...(byInstr.get(k) || []), t.name]); });
+        return `<article class="ov-tube" style="--tc:${hex(g.color)}">
+          <div class="ov-tube-head">
+            ${img
+              ? `<button type="button" class="ov-tube-img" onclick="openImageLightbox('${escapeQuotes(img)}','מבחנה ${escapeQuotes(label)}')" aria-label="הגדל תמונה">
+                   <img src="${escapeAttr(img)}" alt="מבחנה ${escapeAttr(label)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'css-tube',innerHTML:'<span class=&quot;css-tube-cap&quot; style=&quot;background:${hex(g.color)}&quot;></span><span class=&quot;css-tube-body&quot;></span>'}))">
+                 </button>`
+              : `<div class="ov-tube-img"><span class="css-tube"><span class="css-tube-cap" style="background:${hex(g.color)}"></span><span class="css-tube-body"></span></span></div>`}
+            <div class="ov-tube-title">
+              <div class="ov-tube-name"><span class="ov-dot"></span>מבחנה ${escapeHtml(label)}</div>
+              ${g.type ? `<div class="ov-tube-type">${escapeHtml(g.type)}</div>` : ''}
+              ${labs.length ? `<div class="ov-tube-lab">${escapeHtml(labs.join(' · '))}</div>` : ''}
+            </div>
+            <div class="ov-count"><b>${g.count || 1}</b><span>מבחנות</span></div>
+          </div>
+          <div class="ov-tests">${tests.map(t => `<span class="ov-test">${escapeHtml(t.name)}${norm(t.instructions) ? '<i>⚠</i>' : ''}</span>`).join('')}</div>
+          ${byInstr.size ? `<div class="instr-chips ov-instr">${[...byInstr.entries()].map(([instr, ns]) =>
+            renderInstructionChip(ns.length === tests.length ? instr : `${ns.join(', ')}: ${instr}`)).join('')}</div>` : ''}
+        </article>`;
+      };
+
       return `
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-          <span style="font-size:22px;font-weight:900">הזמנה <span dir="ltr">${escapeHtml(o.number)}</span></span>
+        <div class="ov-hero">
+          <div class="ov-hero-top">
+            <div>
+              <div class="ov-hero-label">הזמנה</div>
+              <div class="ov-hero-no" dir="ltr">${escapeHtml(o.number)}</div>
+            </div>
+            ${o.kupa ? `<span class="ov-kupa">${escapeHtml(o.kupa)}</span>` : ''}
+          </div>
+          <div class="ov-facts">
+            ${o.campus ? `<div><span>קמפוס</span><b>${escapeHtml(o.campus)}</b></div>` : ''}
+            ${o.dept ? `<div><span>מחלקה</span><b>${escapeHtml(o.dept)}</b></div>` : ''}
+            ${fmtDate ? `<div><span>תאריך</span><b>${escapeHtml(fmtDate)}</b></div>` : ''}
+            <div><span>בדיקות</span><b>${o.tests.length}</b></div>
+          </div>
         </div>
-        <div class="ol-meta">
-          ${o.campus ? `<span>קמפוס: <b>${escapeHtml(o.campus)}</b></span>` : ''}
-          ${o.dept ? `<span>מחלקה: <b>${escapeHtml(o.dept)}</b></span>` : ''}
-          ${o.kupa ? `<span>קופה: <b>${escapeHtml(o.kupa)}</b></span>` : ''}
-          ${fmtDate ? `<span>תאריך: <b>${escapeHtml(fmtDate)}</b></span>` : ''}
-          <span>בדיקות: <b>${o.tests.length}</b></span>
-        </div>
-        ${o.missing ? `<div style="margin-top:10px;padding:10px 12px;border-radius:12px;background:#fffbeb;border:1px solid #fde68a;color:#92400e;font-weight:800;font-size:13px">${o.missing} בדיקות מההזמנה כבר לא קיימות במערכת ולא מוצגות.</div>` : ''}
-        <div style="margin-top:12px;font-weight:900">מבחנות נדרשות · סה"כ ${total}</div>
-        <div class="ol-tubes">${groups.map(g => `
-          <div class="tube-item"><span class="css-tube"><span class="css-tube-cap" style="background:${hex(g.color)}"></span><span class="css-tube-body"></span></span>
-          <div class="tube-name">${escapeHtml(getColorName(g.color || 'other'))}</div><div class="tube-count" dir="ltr">×${g.count || 1}</div></div>`).join('')}
-        </div>
-        ${groups.map(g => {
-          const names = g.tests || [];
-          const byInstr = new Map();
-          names.map(n => byName.get(n)).filter(t => t && norm(t.instructions))
-            .forEach(t => { const k = norm(t.instructions); byInstr.set(k, [...(byInstr.get(k) || []), t.name]); });
-          return `<div class="ol-tube-group">
-            <h4><span style="width:12px;height:12px;border-radius:50%;background:${hex(g.color)};border:1px solid rgba(0,0,0,.2)"></span>מבחנה ${escapeHtml(getColorName(g.color || 'other'))} ×${g.count || 1}</h4>
-            <div class="ol-tests">${names.map(n => `<span class="ol-test">${escapeHtml(n)}</span>`).join('')}</div>
-            ${byInstr.size ? `<div class="instr-chips" style="margin-top:8px">${[...byInstr.entries()].map(([instr, ns]) =>
-              renderInstructionChip(ns.length === names.length ? instr : `${ns.join(', ')}: ${instr}`)).join('')}</div>` : ''}
-          </div>`;
-        }).join('')}
-        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
-          <button class="ox-btn ox-primary" onclick="openViewedOrderInCart()">פתח בסל (להדפסה חוזרת)</button>
+
+        ${types.length ? `<div class="ov-alert">
+          <div class="ov-alert-title">שימו לב</div>
+          <div class="ov-alert-chips">${types.map(t => `<span class="instr-chip instr-${t.cls}"><span class="instr-ic">${t.icon}</span><span>${TYPE_LABEL[t.cls] || 'הוראה'}</span></span>`).join('')}</div>
+        </div>` : ''}
+
+        ${o.missing ? `<div class="ov-warn">${o.missing} בדיקות מההזמנה כבר לא קיימות במערכת ולא מוצגות.</div>` : ''}
+
+        <div class="ov-section-title">מבחנות נדרשות <span>${total}</span></div>
+        <div class="ov-mini">${groups.map(g => `<span class="ov-mini-item" title="${escapeAttr(getColorName(g.color || 'other'))}">
+          <span class="css-tube"><span class="css-tube-cap" style="background:${hex(g.color)}"></span><span class="css-tube-body"></span></span><b>×${g.count || 1}</b></span>`).join('')}</div>
+
+        <div class="ov-tubes">${groups.map(tubeCard).join('')}</div>
+
+        <div class="ov-actions">
+          <button class="ox-btn ox-primary" onclick="openViewedOrderInCart()">פתח בסל להדפסה חוזרת</button>
           <button class="ox-btn" onclick="closeOrderView()">סגירה</button>
         </div>`;
     };
