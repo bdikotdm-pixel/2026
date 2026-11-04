@@ -709,7 +709,8 @@ function renderInner(){
   document.querySelectorAll('.tab').forEach(b=>{
     const k=b.dataset.tab; b.classList.toggle('active', k===ui.tab);
     b.classList.toggle('has-dirty', tabStats(k).dirty);
-    $('cnt-'+k).textContent = k==='groups' ? (gList('r').length + gList('t').length + gList('g').length) : files[k].rows.length;
+    $('cnt-'+k).textContent = k==='groups' ? (gList('r').length + gList('t').length + gList('g').length)
+      : files[k].rows.length;
   });
   const pill = $('connPill');
   pill.className = 'conn ' + (hasToken() ? (files.tests.source==='GitHub' ? 'ok' : 'bad') : '');
