@@ -558,7 +558,7 @@
 }
 
     /* ===== מספר הזמנה + QR + דיווח ===== */
-    .hdr-btn { display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:14px; border:1px solid #e2e8f0; background:#fff; color:#334155; font-weight:800; font-size:14px; transition:all .15s; }
+    .hdr-btn-unused { display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:14px; border:1px solid #e2e8f0; background:#fff; color:#334155; font-weight:800; font-size:14px; transition:all .15s; }
     .hdr-btn-warn:hover { border-color:#f59e0b88; background:#fffbeb; color:#b45309; }
     @media (max-width:640px){ .hdr-btn span { display:none; } .hdr-btn { padding:9px; } }
     .ox-backdrop { position:fixed; inset:0; background:rgba(15,23,42,.55); backdrop-filter:blur(4px); display:none; align-items:flex-start; justify-content:center; padding:28px 12px; z-index:200; overflow:auto; overflow-x:hidden; }
@@ -707,7 +707,7 @@
 
     /* ===== תגיות הוראות מיוחדות (סל בדיקות) ===== */
     .instr-chips { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
-    .instr-chip { display:inline-flex; align-items:center; gap:9px; padding:10px 16px; border-radius:14px; border:1.5px solid; font-size:17px; font-weight:800; line-height:1.4; max-width:100%; }
+    .instr-chip { display:inline-flex; align-items:center; gap:9px; padding:10px 16px; border-radius:14px; border:1.5px solid; border-inline-start-width:6px; font-size:17px; font-weight:800; line-height:1.45; max-width:100%; }
     .instr-chip .instr-ic { font-size:22px; line-height:1; flex:none; }
     .instr-send  { background:#eff6ff; border-color:#93c5fd; color:#1e40af; }
     .instr-cold  { background:#ecfeff; border-color:#67e8f9; color:#155e75; }
@@ -717,7 +717,14 @@
     .instr-warm  { background:#fff7ed; border-color:#fdba74; color:#9a3412; }
     .instr-drug  { background:#fdf2f8; border-color:#f9a8d4; color:#9d174d; }
     .instr-warn  { background:#fffbeb; border-color:#fbbf24; color:#92400e; }
-    @media (max-width:768px){ .instr-chip { font-size:15px; padding:8px 12px; } .instr-chip .instr-ic { font-size:19px; } }
+    @media (max-width:768px){ .instr-chip { font-size:15px; padding:8px 12px; } }
+    .cart-notes { padding:22px 24px; display:flex; flex-direction:column; justify-content:center; border-top:1px solid #f1f5f9; }
+    @media (min-width:1024px){ .cart-notes { border-top:0; border-inline-start:1px solid #f1f5f9; border-inline-end:1px solid #f1f5f9; } }
+    .cart-notes-title { font-size:13px; font-weight:900; color:#92400e; margin-bottom:2px; }
+    .cart-notes .instr-chips { margin-top:8px; flex-direction:column; align-items:stretch; }
+    .cart-notes .instr-chip { font-size:21px; padding:12px 18px; line-height:1.45; }
+    @media (max-width:768px){ .cart-notes .instr-chip { font-size:18px; } }
+    .cart-notes-empty { color:#94a3b8; font-weight:700; font-size:15px; text-align:center; }
 
     .zoomable-image-btn { border: 0; background: transparent; padding: 0; cursor: zoom-in; }
     .zoomable-image-btn:focus-visible { outline: 3px solid rgba(37, 99, 235, 0.35); outline-offset: 4px; border-radius: 24px; }
@@ -801,13 +808,6 @@ button{
           <h1 class="text-xl font-extrabold text-slate-800 tracking-tight">מערכת בדיקות ומבחנות</h1>
           <p class="text-xs text-slate-500 font-medium"></p>
         </div>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <button onclick="openReportMail()" class="hdr-btn hdr-btn-warn" title="דיווח על טעות במערכת (נפתח מייל)">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21V4m0 0h11l-1.5 4L14 12H3"/></svg>
-          <span>דיווח על טעות</span>
-        </button>
       </div>
 
       <!-- Admin controls hidden from team -->
@@ -2486,7 +2486,6 @@ if (!state.selectedCampus || !state.selectedDept || !state.selectedKupa) {
     // ===== הזמנה: מספר + קישור QR שמכיל את כל ההזמנה (בלי שרת ובלי שמירה) =====
     // פורמט: 1.<מספר>.<קמפוס>.<מחלקה>.<קופה>.<YYMMDD>.<w>.<בדיקות>
     // כל בדיקה = מזהה (base36, w תווים) + חתימת שם (2 תווים), כדי לזהות אותה גם אם סדר השורות בקובץ השתנה
-    const REPORT_EMAIL = 'bdikotdm@gmail.com';
     const nameHash = (name) => {
       let h = 5381; const t = norm(name).toLowerCase();
       for (let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0;
@@ -2605,7 +2604,7 @@ if (!state.selectedCampus || !state.selectedDept || !state.selectedKupa) {
 
         ${types.length ? `<div class="ov-alert">
           <div class="ov-alert-title">שימו לב</div>
-          <div class="ov-alert-chips">${types.map(t => `<span class="instr-chip instr-${t.cls}"><span class="instr-ic">${t.icon}</span><span>${TYPE_LABEL[t.cls] || 'הוראה'}</span></span>`).join('')}</div>
+          <div class="ov-alert-chips">${types.map(t => `<span class="instr-chip instr-${t.cls}"><span>${TYPE_LABEL[t.cls] || 'הוראה'}</span></span>`).join('')}</div>
         </div>` : ''}
 
         ${o.missing ? `<div class="ov-warn">${o.missing} בדיקות מההזמנה כבר לא קיימות במערכת ולא מוצגות.</div>` : ''}
@@ -2654,26 +2653,6 @@ if (!state.selectedCampus || !state.selectedDept || !state.selectedKupa) {
     window.addEventListener('hashchange', () => checkOrderHash());
     setTimeout(() => checkOrderHash(), 0);
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('orderViewModal').classList.contains('open')) closeOrderView(); });
-
-    // ----- דיווח על טעות: פותח מייל מוכן (בלי שרת) -----
-    window.openReportMail = (testNames = '') => {
-      const lines = [
-        'שלום,',
-        'מצאתי טעות במערכת הבדיקות והמבחנות.',
-        '',
-        testNames ? `בדיקה/ות: ${testNames}` : 'בדיקה: ',
-        `קופה: ${state.selectedKupa || '-'} | קמפוס: ${state.selectedCampus || '-'} | מחלקה: ${state.selectedDept || '-'}`,
-        state.order && state.order.number ? `מספר הזמנה: ${state.order.number}` : '',
-        '',
-        'מה הטעות:',
-        '',
-        '',
-        'שם המדווח/ת:'
-      ].join('\n');
-      const subject = 'דיווח על טעות במערכת הבדיקות' + (testNames ? ' – ' + testNames.slice(0, 60) : '');
-      window.location.href = `mailto:${REPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines)}`;
-      oxToast(`נפתחת הודעת מייל. אם לא נפתח כלום – שלחו את הדיווח ל־${REPORT_EMAIL}`, '', 9000);
-    };
 
     const triggerPrint = () => {
       window.print();
@@ -3674,7 +3653,7 @@ ${(state.routineFilter || state.typeFilter) ? `
     };
     const renderInstructionChip = (text) => {
       const type = classifyInstruction(text);
-      return `<span class="instr-chip instr-${type.cls}"><span class="instr-ic" aria-hidden="true">${type.icon}</span><span>${escapeHtml(text)}</span></span>`;
+      return `<span class="instr-chip instr-${type.cls}"><span>${escapeHtml(text)}</span></span>`;
     };
 
 const renderCart = () => {
@@ -3809,7 +3788,7 @@ const renderCart = () => {
               return `
                 <article class="group bg-white rounded-[30px] border border-slate-200 shadow-sm hover:shadow-lg transition-shadow overflow-hidden relative" style="box-shadow:0 10px 30px rgba(15,23,42,0.06);">
                   <div class="absolute inset-y-0 right-0 w-2" style="background:${accent};"></div>
-                  <div class="grid grid-cols-1 lg:grid-cols-[170px_minmax(0,1fr)_180px] items-stretch">
+                  <div class="grid grid-cols-1 lg:grid-cols-[150px_minmax(0,0.85fr)_minmax(0,1.15fr)_170px] items-stretch">
                     <div class="p-6 lg:p-7 border-b lg:border-b-0 lg:border-l border-slate-100 flex flex-row lg:flex-col items-center lg:items-start justify-between gap-4" style="background:linear-gradient(180deg, ${accent}12, ${accent}05);">
                       <div>
                         <div class="text-xs font-black text-slate-500 tracking-wide">כמות נדרשת</div>
@@ -3829,21 +3808,11 @@ const renderCart = () => {
                           </span>
                         ` : ''}
                       </div>
-                      ${instructionList.length
-                        ? `<div class="instr-chips">${instructionList.map(renderInstructionChip).join('')}</div>`
-                        : `<p class="mt-3 text-sm text-slate-400 font-medium">אין הוראות מיוחדות למבחנה זו.</p>`}
-
                       <div class="mt-5 flex flex-wrap gap-3">
                         <button class="min-h-[52px] px-5 rounded-2xl bg-slate-100 text-slate-800 font-black hover:bg-slate-200 transition-colors inline-flex items-center gap-2"
                           onclick="document.getElementById('${accordionId}').classList.toggle('hidden')">
                           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                           פרטים נוספים
-                        </button>
-<button class="min-h-[52px] px-4 rounded-2xl text-amber-700 border border-amber-100 bg-amber-50 font-black hover:bg-amber-100 transition-colors inline-flex items-center gap-2"
-                          title="דיווח על טעות במבחנה הזו (נפתח מייל)"
-                          onclick="event.stopPropagation(); openReportMail(${escapeHtml(JSON.stringify((tube.tests || []).join(', ')))})">
-                          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21V4m0 0h11l-1.5 4L14 12H3"/></svg>
-                          דיווח
                         </button>
 <button class="min-h-[52px] px-5 rounded-2xl text-red-600 border border-red-100 bg-red-50 font-black hover:bg-red-100 transition-colors inline-flex items-center gap-2"
                           onclick="event.stopPropagation(); removeTubeTests('${escapeQuotes(removeKey)}', ${idx})">
@@ -3866,7 +3835,13 @@ const renderCart = () => {
                       </div>
                     </div>
 
-                    <div class="p-6 lg:p-7 order-2 lg:order-3 flex items-center justify-center" style="background:radial-gradient(circle at 50% 30%, ${accent}0d, transparent 60%);">
+                    <div class="cart-notes order-4 lg:order-3 ${instructionList.length ? '' : 'is-empty'}">
+                      ${instructionList.length
+                        ? `<div class="cart-notes-title">הוראות מיוחדות</div><div class="instr-chips">${instructionList.map(renderInstructionChip).join('')}</div>`
+                        : `<div class="cart-notes-empty">אין הוראות מיוחדות</div>`}
+                    </div>
+
+                    <div class="p-6 lg:p-7 order-2 lg:order-4 flex items-center justify-center" style="background:radial-gradient(circle at 50% 30%, ${accent}0d, transparent 60%);">
                       ${renderTubeVisual(tube, accent)}
                     </div>
                   </div>
