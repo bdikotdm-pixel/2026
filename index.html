@@ -2544,6 +2544,7 @@ if (!state.selectedCampus || !state.selectedDept || !state.selectedKupa) {
 
     // ----- צפייה בהזמנה מתוך QR -----
     let viewedOrder = null;
+    const splitInstr = (v) => String(v || '').split(/\r?\n+/).map(x => x.trim()).filter(Boolean);
     const renderOrderView = (o) => {
       const fmtDate = o.formDate ? new Date(o.formDate + 'T00:00:00').toLocaleDateString('he-IL') : '';
       const groups = Object.values(aggregateTubes(o.tests))
@@ -2553,7 +2554,7 @@ if (!state.selectedCampus || !state.selectedDept || !state.selectedKupa) {
       const hex = c => TUBE_COLOR_HEX[c || 'other'] || TUBE_COLOR_HEX.other;
 
       // סיכום הנחיות לכל ההזמנה (צום, קירור, שליחה...) – מוצג למעלה כדי שלא יפספסו
-      const allInstr = [...new Set(o.tests.map(t => norm(t.instructions)).filter(Boolean))];
+      const allInstr = [...new Set(o.tests.flatMap(t => splitInstr(t.instructions)))];
       const TYPE_LABEL = { fast:'צום', cold:'קירור', light:'הגנה מאור', warm:'חום גוף', time:'זמן / דחוף', drug:'לפני מנת תרופה', send:'שליחה למעבדה אחרת', warn:'הוראה מיוחדת' };
       const types = [...new Map(allInstr.map(x => classifyInstruction(x)).map(t => [t.cls, t])).values()];
 
@@ -2564,7 +2565,7 @@ if (!state.selectedCampus || !state.selectedDept || !state.selectedKupa) {
         const label = getColorName(g.color || 'other');
         const labs = [...new Set(tests.map(t => norm(t.lab)).filter(Boolean))];
         const byInstr = new Map();
-        tests.filter(t => norm(t.instructions)).forEach(t => { const k = norm(t.instructions); byInstr.set(k, [...(byInstr.get(k) || []), t.name]); });
+        tests.forEach(t => splitInstr(t.instructions).forEach(k => { byInstr.set(k, [...(byInstr.get(k) || []), t.name]); }));
         return `<article class="ov-tube" style="--tc:${hex(g.color)}">
           <div class="ov-tube-head">
             ${img
@@ -2579,7 +2580,7 @@ if (!state.selectedCampus || !state.selectedDept || !state.selectedKupa) {
             </div>
             <div class="ov-count"><b>${g.count || 1}</b><span>מבחנות</span></div>
           </div>
-          <div class="ov-tests">${tests.map(t => `<span class="ov-test">${escapeHtml(t.name)}${norm(t.instructions) ? '<i>⚠</i>' : ''}</span>`).join('')}</div>
+          <div class="ov-tests">${tests.map(t => `<span class="ov-test">${escapeHtml(t.name)}</span>`).join('')}</div>
           ${byInstr.size ? `<div class="instr-chips ov-instr">${[...byInstr.entries()].map(([instr, ns]) =>
             renderInstructionChip(ns.length === tests.length ? instr : `${ns.join(', ')}: ${instr}`)).join('')}</div>` : ''}
         </article>`;
@@ -3868,7 +3869,7 @@ const renderCart = () => {
                     <div class="min-w-0 flex items-center gap-3">
                       <span class="w-3.5 h-3.5 rounded-full shrink-0" style="background:${accent};"></span>
                       <div class="min-w-0">
-                        <div class="font-black text-slate-800 truncate">${norm(test.instructions) ? '⚠ ' : ''}${escapeHtml(test.name)}</div>
+                        <div class="font-black text-slate-800 truncate">${escapeHtml(test.name)}</div>
                         <div class="text-sm text-slate-500 font-bold truncate">${escapeHtml(Array.isArray(test.tube_type) ? test.tube_type.join(', ') : (test.tube_type || 'מבחנה'))} • ${escapeHtml(getColorName(test.tube_color || 'other'))}</div>
                       </div>
                     </div>
@@ -3939,10 +3940,10 @@ const renderCart = () => {
 
         groups[key].tests.push(test.name);
 
-        if (test.instructions) {
-          const ins = test.instructions.trim();
-          if (ins && !groups[key].instructions.includes(ins)) groups[key].instructions.push(ins);
-        }
+        // כל שורה בהוראות = הערה נפרדת (נערך בעמוד הניהול ← לשונית "הערות")
+        splitInstr(test.instructions).forEach(ins => {
+          if (!groups[key].instructions.includes(ins)) groups[key].instructions.push(ins);
+        });
       });
 
       return groups;
@@ -4015,9 +4016,7 @@ const renderPrintPreview = () => {
       const code = escapeHtml(t.code || '');
       const name = escapeHtml(t.name || '');
       const hasInstr = !!(t.instructions && t.instructions.trim());
-      const warn = hasInstr
-        ? `<span class="inline-flex items-center justify-center w-4 h-4 text-[10px] font-black rounded bg-amber-100 border border-amber-300 text-amber-900 ml-1" title="יש הוראות מיוחדות">⚠</span>`
-        : '';
+      const warn = ''; // סימן המשולש הוסר לבקשת המשתמש
       return `
         <tr>
           <td class="p-0.5 text-center w-7"><span class="chk">V</span></td>
@@ -4797,6 +4796,7 @@ document.getElementById('btn-save-airtable').addEventListener('click', () => {
 
       const instrEl = document.getElementById('testModalInstr');
       instrEl.textContent = t.instructions || 'אין הוראות מיוחדות';
+      instrEl.style.whiteSpace = 'pre-line';
 
       // Preview image or icon
       const preview = document.getElementById('testModalPreview');
