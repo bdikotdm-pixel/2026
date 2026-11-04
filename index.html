@@ -598,7 +598,8 @@
     .ov-hero-label { font-size:12px; font-weight:800; opacity:.75; }
     .ov-hero-no { font-size:30px; font-weight:900; letter-spacing:.02em; line-height:1.15; }
     .ov-kupa { background:#fff; color:#155E8A; border-radius:999px; padding:5px 14px; font-weight:900; font-size:15px; }
-    .ov-facts { display:grid; grid-template-columns:repeat(auto-fit,minmax(90px,1fr)); gap:8px; margin-top:14px; }
+    .ov-facts { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:14px; }
+    @media (max-width:520px){ .ov-facts { grid-template-columns:repeat(2,1fr); } }
     .ov-facts div { background:rgba(255,255,255,.12); border-radius:14px; padding:8px 10px; }
     .ov-facts span { display:block; font-size:11px; font-weight:800; opacity:.75; }
     .ov-facts b { font-size:16px; font-weight:900; }
@@ -641,6 +642,19 @@
       .ov-tube-img { width:64px; height:64px; }
     }
     .image-lightbox-backdrop { z-index:260 !important; }
+    .ov-loading { display:flex; flex-direction:column; align-items:center; gap:14px; padding:80px 0; color:#64748b; font-weight:800; }
+    .ov-spin { width:44px; height:44px; border-radius:50%; border:5px solid rgba(21,94,138,.15); border-top-color:#155E8A; animation:ovspin .8s linear infinite; }
+    @keyframes ovspin { to { transform:rotate(360deg); } }
+
+    /* ===== מצב "הזמנה בלבד" (נפתח מ-QR): בלי האתר, ההזמנה ממלאת את המסך ===== */
+    html.order-only, html.order-only body { background:#f1f5f9 !important; min-height:100%; }
+    html.order-only body > *:not(#orderViewModal):not(#imageLightbox):not(script) { display:none !important; }
+    html.order-only body { padding:0 !important; margin:0 !important; overflow-x:hidden; }
+    html.order-only #orderViewModal { position:static; display:block !important; background:transparent; backdrop-filter:none; padding:0; overflow:visible; }
+    html.order-only #orderViewModal .ox-modal { max-width:760px; margin:0 auto; min-height:100vh; border-radius:0; box-shadow:none; }
+    html.order-only #orderViewModal .ox-head { display:none; }
+    html.order-only #orderViewModal .ox-body { padding:14px 14px 28px; }
+    @media (min-width:760px){ html.order-only #orderViewModal .ox-modal { margin:24px auto; min-height:0; border-radius:24px; box-shadow:0 20px 50px rgba(15,23,42,.12); } }
 
     /* ===== תאריך שניתן לשינוי בטופס ===== */
     .date-val { position:relative; cursor:pointer; }
@@ -767,6 +781,10 @@ button{
 </style>
 
 
+<script>
+  // נפתח מסריקת QR? מציגים רק את ההזמנה, בלי האתר
+  if (/^#o=/.test(location.hash)) document.documentElement.classList.add('order-only');
+</script>
 </head>
 
 <body class="min-h-screen flex flex-col">
@@ -813,9 +831,8 @@ button{
     <div class="ox-modal" role="dialog" aria-modal="true" dir="rtl">
       <div class="ox-head">
         <div><h3>צפייה בהזמנה</h3><p>נקרא מקוד ה-QR שעל הטופס</p></div>
-        <button class="ox-x" onclick="closeOrderView()" aria-label="סגירה">✕</button>
       </div>
-      <div class="ox-body" id="ov_body"></div>
+      <div class="ox-body" id="ov_body"><div class="ov-loading"><div class="ov-spin"></div>טוען הזמנה...</div></div>
     </div>
   </div>
   <div id="oxToast" class="ox-toast no-print"></div>
@@ -2599,14 +2616,13 @@ if (!state.selectedCampus || !state.selectedDept || !state.selectedKupa) {
 
         <div class="ov-tubes">${groups.map(tubeCard).join('')}</div>
 
-        <div class="ov-actions">
-          <button class="ox-btn ox-primary" onclick="openViewedOrderInCart()">פתח בסל להדפסה חוזרת</button>
-          <button class="ox-btn" onclick="closeOrderView()">סגירה</button>
-        </div>`;
+`;
     };
     const checkOrderHash = (tries = 0) => {
       const m = location.hash.match(/^#o=([0-9a-z.\-]+)$/i);
       if (!m) return;
+      document.documentElement.classList.add('order-only');
+      document.getElementById('orderViewModal').classList.add('open');
       if (!state.dataLoaded || !state.tests.length) { if (tries < 120) setTimeout(() => checkOrderHash(tries + 1), 250); return; }
       const o = decodeOrder(m[1]);
       const body = document.getElementById('ov_body');
@@ -2614,6 +2630,8 @@ if (!state.selectedCampus || !state.selectedDept || !state.selectedKupa) {
       body.innerHTML = o && o.tests.length ? renderOrderView(o)
         : `<div style="padding:14px;border-radius:14px;background:#fef2f2;color:#991b1b;font-weight:800">לא הצלחנו לקרוא את ההזמנה מהקוד.</div>`;
       document.getElementById('orderViewModal').classList.add('open');
+      document.documentElement.classList.add('order-only');
+      if (o && o.number) document.title = `הזמנה ${o.number}`;
     };
     window.closeOrderView = () => {
       document.getElementById('orderViewModal').classList.remove('open');
