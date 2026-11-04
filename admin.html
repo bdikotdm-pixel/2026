@@ -280,6 +280,15 @@ table.grid{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
           <span class="hint">בלי Token אפשר לצפות ולהוריד קבצי CSV, אבל לא לשמור ישירות ל-GitHub.</span>
         </div>
       </div>
+      <div class="section-title" style="margin-top:18px">קוד כניסה לעמוד הניהול</div>
+      <div class="fgrid">
+        <div class="field"><label>קוד חדש</label><input id="s_code1" class="input" type="password" dir="ltr" autocomplete="new-password"></div>
+        <div class="field"><label>הקלד שוב</label><input id="s_code2" class="input" type="password" dir="ltr" autocomplete="new-password"></div>
+        <div class="field span2">
+          <span class="hint" id="s_codeState"></span>
+          <label class="check" id="s_codeRemoveWrap"><input type="checkbox" id="s_codeRemove"> הסר את קוד הכניסה</label>
+        </div>
+      </div>
       <details style="margin-top:14px">
         <summary style="cursor:pointer;font-weight:800">נתיבי קבצים בריפו</summary>
         <div class="fgrid" style="margin-top:10px">
@@ -358,6 +367,21 @@ table.grid{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
 <input type="file" id="hiddenCsvInput" accept=".csv,text/csv" multiple hidden>
 <input type="file" id="hiddenImgInput" accept="image/*" hidden>
 <div class="toasts" id="toasts"></div>
+
+<!-- ===== מסך כניסה בקוד ===== -->
+<div id="lockScreen" style="display:none;position:fixed;inset:0;z-index:100;background:var(--surface);align-items:center;justify-content:center;padding:16px">
+  <form class="card" style="width:100%;max-width:380px;padding:26px;display:flex;flex-direction:column;gap:12px;text-align:center" onsubmit="event.preventDefault();tryUnlock()">
+    <div class="brand-icon" style="margin:0 auto;width:52px;height:52px;border-radius:16px">
+      <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path stroke-linecap="round" d="M8 11V7a4 4 0 118 0v4"/></svg>
+    </div>
+    <h2 style="margin:0;font-size:19px;font-weight:900">עמוד ניהול</h2>
+    <div style="color:var(--muted);font-weight:600;font-size:13px">הקלד את קוד הכניסה</div>
+    <input id="lockCode" class="input" type="password" inputmode="numeric" autocomplete="current-password" style="text-align:center;font-size:20px;font-weight:900;letter-spacing:.2em" dir="ltr">
+    <label class="check" style="justify-content:center"><input type="checkbox" id="lockRemember"> זכור במחשב הזה</label>
+    <div id="lockErr" style="color:var(--danger);font-weight:800;font-size:13px;min-height:18px"></div>
+    <button class="btn btn-primary" type="submit">כניסה</button>
+  </form>
+</div>
 
 <script>
 /* ============================================================
@@ -1676,6 +1700,9 @@ function persistCfg(){ try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
 function openSettings(){
   $('s_owner').value = cfg.owner; $('s_repo').value = cfg.repo; $('s_branch').value = cfg.branch;
   $('s_images').value = cfg.imagesDir; $('s_token').value = cfg.token;
+  $('s_code1').value = ''; $('s_code2').value = ''; $('s_codeRemove').checked = false;
+  $('s_codeState').textContent = siteSettings.adminCodeHash ? 'כרגע מוגדר קוד כניסה. השאר ריק כדי לא לשנות.' : 'כרגע אין קוד כניסה – כל מי שפותח את העמוד רואה אותו (אבל לא יכול לשמור בלי Token).';
+  $('s_codeRemoveWrap').style.display = siteSettings.adminCodeHash ? '' : 'none';
   $('s_p_tests').value = cfg.paths.tests; $('s_p_messages').value = cfg.paths.messages; $('s_p_final').value = cfg.paths.final;
   $('s_repoHint').textContent = cfg.repo; $('s_result').innerHTML = '';
   openModal('settingsModal');
@@ -1699,6 +1726,24 @@ async function testConnection(){
 }
 async function saveSettings(){
   readSettings();
+  const c1 = $('s_code1').value, c2 = $('s_code2').value, removeCode = $('s_codeRemove').checked;
+  if (c1 || c2 || removeCode){
+    if (!removeCode){
+      if (c1 !== c2){ toast('שני הקודים לא זהים', 'err'); return; }
+      if (c1.length < 4){ toast('הקוד צריך להיות לפחות 4 תווים', 'err'); return; }
+    }
+    if (!hasToken()){ toast('כדי לשמור קוד כניסה צריך Token של GitHub.', 'err'); return; }
+    try {
+      const next = { ...siteSettings };
+      if (removeCode) delete next.adminCodeHash; else next.adminCodeHash = codeHash(c1);
+      const sha = await ghGetSha(SETTINGS_PATH);
+      await ghPutFile(SETTINGS_PATH, bytesToB64(new TextEncoder().encode(JSON.stringify(next, null, 2) + '\n')), sha,
+        removeCode ? 'הסרת קוד כניסה לעמוד הניהול' : 'עדכון קוד כניסה לעמוד הניהול');
+      siteSettings = next;
+      rememberUnlock(next.adminCodeHash || '', true);
+      toast(removeCode ? 'קוד הכניסה הוסר.' : 'קוד הכניסה נשמר. הוא ייכנס לתוקף בעוד כדקה.', 'ok');
+    } catch(e){ toast(e.message, 'err'); return; }
+  }
   const dirty = Object.keys(files).some(k=>fileStats(k).dirty);
   if (dirty && !confirm('שמירת ההגדרות תטען מחדש את הנתונים מ-GitHub ותבטל שינויים שלא נשמרו. להמשיך?')) return;
   persistCfg(); closeModal('settingsModal'); await loadAll();
@@ -1727,8 +1772,71 @@ window.addEventListener('beforeunload', e=>{
   if (Object.keys(files).some(k=>fileStats(k).dirty)){ e.preventDefault(); e.returnValue=''; }
 });
 
+/* ============================================================
+   קוד כניסה לעמוד הניהול
+   ה-hash נשמר ב-data/settings.json. זו הגנה מפני כניסה מקרית בלבד –
+   ההגנה האמיתית היא ה-Token: בלעדיו אי אפשר לשמור שום שינוי.
+   ============================================================ */
+const SETTINGS_PATH = 'data/settings.json';
+const UNLOCK_KEY = 'labtests_admin_unlock';
+let siteSettings = {};
+function sha256Hex(str){
+  const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  const bytes = new TextEncoder().encode(str);
+  const len = bytes.length, bitLen = len * 8;
+  const total = ((len + 9 + 63) >> 6) << 6;
+  const m = new Uint8Array(total); m.set(bytes); m[len] = 0x80;
+  const dv = new DataView(m.buffer); dv.setUint32(total - 4, bitLen >>> 0); dv.setUint32(total - 8, Math.floor(bitLen / 2**32));
+  let H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  const W = new Uint32Array(64), r = (x,n)=>(x>>>n)|(x<<(32-n));
+  for (let o=0;o<total;o+=64){
+    for (let i=0;i<16;i++) W[i]=dv.getUint32(o+i*4);
+    for (let i=16;i<64;i++){ const s0=r(W[i-15],7)^r(W[i-15],18)^(W[i-15]>>>3), s1=r(W[i-2],17)^r(W[i-2],19)^(W[i-2]>>>10); W[i]=(W[i-16]+s0+W[i-7]+s1)>>>0; }
+    let [a,b,c,d,e,f,g,h]=H;
+    for (let i=0;i<64;i++){
+      const t1=(h+(r(e,6)^r(e,11)^r(e,25))+((e&f)^(~e&g))+K[i]+W[i])>>>0;
+      const t2=((r(a,2)^r(a,13)^r(a,22))+((a&b)^(a&c)^(b&c)))>>>0;
+      h=g; g=f; f=e; e=(d+t1)>>>0; d=c; c=b; b=a; a=(t1+t2)>>>0;
+    }
+    H=H.map((x,i)=>(x+[a,b,c,d,e,f,g,h][i])>>>0);
+  }
+  return H.map(x=>x.toString(16).padStart(8,'0')).join('');
+}
+const codeHash = code => sha256Hex('lab-tests-admin::' + String(code).trim());
+async function loadSiteSettings(){
+  siteSettings = {};
+  try {
+    if (hasToken()){ const { text } = await ghGetFile(SETTINGS_PATH); siteSettings = JSON.parse(text || '{}'); return; }
+  } catch(e){ /* לא קיים עדיין */ }
+  try { const r = await fetch(SETTINGS_PATH + '?t=' + Date.now(), { cache:'no-store' }); if (r.ok) siteSettings = await r.json(); } catch(e){}
+}
+function isUnlocked(hash){
+  try { return sessionStorage.getItem(UNLOCK_KEY) === hash || localStorage.getItem(UNLOCK_KEY) === hash; } catch(e){ return false; }
+}
+function rememberUnlock(hash, persistent){
+  try { sessionStorage.setItem(UNLOCK_KEY, hash); if (persistent) localStorage.setItem(UNLOCK_KEY, hash); else localStorage.removeItem(UNLOCK_KEY); } catch(e){}
+}
+function tryUnlock(){
+  const h = codeHash($('lockCode').value);
+  if (h !== siteSettings.adminCodeHash){ $('lockErr').textContent = 'קוד שגוי'; $('lockCode').select(); return; }
+  rememberUnlock(h, $('lockRemember').checked);
+  $('lockScreen').style.display = 'none';
+  loadAll();
+}
+async function startAdmin(){
+  await loadSiteSettings();
+  const h = siteSettings.adminCodeHash;
+  if (h && !isUnlocked(h)){
+    ui.loading = false; $('view').innerHTML = ''; $('saveBar').style.display = 'none';
+    $('lockScreen').style.display = 'flex';
+    setTimeout(()=>$('lockCode').focus(), 50);
+    return;
+  }
+  loadAll();
+}
+
 loadCfg();
-loadAll();
+startAdmin();
 </script>
 </body>
 </html>
